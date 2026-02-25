@@ -6,6 +6,7 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ExportBulkAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -13,10 +14,11 @@ use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Grid;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Malzariey\FilamentDaterangepickerFilter\Filters\DateRangeFilter;
 use SmartTill\Core\Enums\PaymentMethod;
 use SmartTill\Core\Filament\Exports\CustomerTransactionExporter;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
@@ -44,8 +46,23 @@ class TransactionsRelationManager extends RelationManager
                     ->multiple()
                     ->preload(),
 
-                DateRangeFilter::make('created_at')
-                    ->label('Date range'),
+                Filter::make('created_at_range')
+                    ->label('Date range')
+                    ->form([
+                        DatePicker::make('from')->label('From'),
+                        DatePicker::make('until')->label('Until'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                filled($data['from'] ?? null),
+                                fn (Builder $query): Builder => $query->whereDate('created_at', '>=', $data['from'])
+                            )
+                            ->when(
+                                filled($data['until'] ?? null),
+                                fn (Builder $query): Builder => $query->whereDate('created_at', '<=', $data['until'])
+                            );
+                    }),
             ])
             ->headerActions([
                 Action::make('receive')

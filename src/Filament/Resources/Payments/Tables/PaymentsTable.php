@@ -4,12 +4,13 @@ namespace SmartTill\Core\Filament\Resources\Payments\Tables;
 
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Malzariey\FilamentDaterangepickerFilter\Filters\DateRangeFilter;
 use SmartTill\Core\Enums\PaymentMethod;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
 use SmartTill\Core\Filament\Resources\Payments\PaymentResource;
@@ -87,8 +88,23 @@ class PaymentsTable
                     ->options(PaymentMethod::class)
                     ->multiple()
                     ->preload(),
-                DateRangeFilter::make('created_at')
-                    ->label('Date range'),
+                Filter::make('created_at_range')
+                    ->label('Date range')
+                    ->form([
+                        DatePicker::make('from')->label('From'),
+                        DatePicker::make('until')->label('Until'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                filled($data['from'] ?? null),
+                                fn (Builder $query): Builder => $query->whereDate('created_at', '>=', $data['from'])
+                            )
+                            ->when(
+                                filled($data['until'] ?? null),
+                                fn (Builder $query): Builder => $query->whereDate('created_at', '<=', $data['until'])
+                            );
+                    }),
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
