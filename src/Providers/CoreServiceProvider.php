@@ -2,15 +2,21 @@
 
 namespace SmartTill\Core\Providers;
 
+use App\Models\Store as AppStore;
+use App\Models\User as AppUser;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use SmartTill\Core\Console\Commands\CoreInstallCommand;
 use SmartTill\Core\Console\Commands\NativeCoreInstallCommand;
 use SmartTill\Core\Models\Attribute;
+use SmartTill\Core\Models\Country;
+use SmartTill\Core\Models\Currency;
 use SmartTill\Core\Models\Payment;
 use SmartTill\Core\Models\Product;
 use SmartTill\Core\Models\Sale;
 use SmartTill\Core\Models\Stock;
+use SmartTill\Core\Models\StoreSetting;
+use SmartTill\Core\Models\Timezone;
 use SmartTill\Core\Models\Transaction;
 use SmartTill\Core\Models\Unit;
 use SmartTill\Core\Models\Variation;
@@ -24,6 +30,7 @@ use SmartTill\Core\Observers\UnitObserver;
 use SmartTill\Core\Observers\VariationObserver;
 use SmartTill\Core\Services\CoreAccessBootstrapService;
 use SmartTill\Core\Services\CoreGeoBootstrapService;
+use SmartTill\Core\Models\Role;
 
 class CoreServiceProvider extends ServiceProvider
 {
@@ -40,6 +47,8 @@ class CoreServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerHostModelFallbackRelations();
+
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'smart-core');
         Livewire::component('product-search', \SmartTill\Core\Livewire\ProductSearch::class);
@@ -55,6 +64,50 @@ class CoreServiceProvider extends ServiceProvider
 
         if (class_exists(\App\Models\Store::class) && ! class_exists(\App\Observers\StoreObserver::class)) {
             \App\Models\Store::observe(\SmartTill\Core\Observers\StoreObserver::class);
+        }
+    }
+
+    private function registerHostModelFallbackRelations(): void
+    {
+        if (class_exists(AppStore::class)) {
+            if (! method_exists(AppStore::class, 'currency')) {
+                AppStore::resolveRelationUsing('currency', fn (AppStore $store) => $store->belongsTo(Currency::class, 'currency_id'));
+            }
+
+            if (! method_exists(AppStore::class, 'country')) {
+                AppStore::resolveRelationUsing('country', fn (AppStore $store) => $store->belongsTo(Country::class, 'country_id'));
+            }
+
+            if (! method_exists(AppStore::class, 'timezone')) {
+                AppStore::resolveRelationUsing('timezone', fn (AppStore $store) => $store->belongsTo(Timezone::class, 'timezone_id'));
+            }
+
+            if (! method_exists(AppStore::class, 'settings')) {
+                AppStore::resolveRelationUsing('settings', fn (AppStore $store) => $store->hasMany(StoreSetting::class, 'store_id'));
+            }
+
+            if (! method_exists(AppStore::class, 'users')) {
+                AppStore::resolveRelationUsing(
+                    'users',
+                    fn (AppStore $store) => $store->belongsToMany(AppUser::class, 'store_user')->withPivot('cash_in_hand', 'role_id')
+                );
+            }
+        }
+
+        if (class_exists(AppUser::class)) {
+            if (! method_exists(AppUser::class, 'stores')) {
+                AppUser::resolveRelationUsing(
+                    'stores',
+                    fn (AppUser $user) => $user->belongsToMany(AppStore::class, 'store_user')->withPivot('cash_in_hand', 'role_id')
+                );
+            }
+
+            if (! method_exists(AppUser::class, 'roles')) {
+                AppUser::resolveRelationUsing(
+                    'roles',
+                    fn (AppUser $user) => $user->belongsToMany(Role::class, 'user_role')->withPivot('store_id')->withTimestamps()
+                );
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ use Filament\Facades\Filament;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use SmartTill\Core\Models\Currency;
 
 class PriceCast implements CastsAttributes
 {
@@ -18,13 +19,13 @@ class PriceCast implements CastsAttributes
     private function getMultiplier(Model $model, array $attributes = []): int
     {
         $store = $this->resolveStore($model, $attributes);
+        $currency = $this->resolveCurrency($store);
 
-        if (! $store || ! $store->currency) {
+        if (! $store || ! $currency) {
             // Fallback to 100 (2 decimals) for backward compatibility
             return 100;
         }
 
-        $currency = $store->currency;
         $decimalPlaces = $currency->decimal_places ?? 2;
 
         // Calculate multiplier: 10^decimal_places
@@ -42,7 +43,7 @@ class PriceCast implements CastsAttributes
         try {
             $tenant = Filament::getTenant();
             if ($tenant instanceof Store) {
-                return $tenant->load('currency');
+                return $tenant;
             }
         } catch (\Exception $e) {
             // Not in Filament context, continue with other methods
@@ -53,7 +54,7 @@ class PriceCast implements CastsAttributes
             $storeId = $attributes['store_id'];
 
             return Cache::remember("store_currency_{$storeId}", 3600, function () use ($storeId) {
-                return Store::with('currency')->find($storeId);
+                return Store::find($storeId);
             });
         }
 
@@ -62,7 +63,7 @@ class PriceCast implements CastsAttributes
             $storeId = $model->store_id;
 
             return Cache::remember("store_currency_{$storeId}", 3600, function () use ($storeId) {
-                return Store::with('currency')->find($storeId);
+                return Store::find($storeId);
             });
         }
 
@@ -72,7 +73,7 @@ class PriceCast implements CastsAttributes
             $saleId = $attributes['sale_id'];
 
             return Cache::remember("sale_store_currency_{$saleId}", 3600, function () use ($saleId) {
-                $sale = \SmartTill\Core\Models\Sale::with('store.currency')->find($saleId);
+                $sale = \SmartTill\Core\Models\Sale::with('store')->find($saleId);
 
                 return $sale?->store;
             });
@@ -85,7 +86,7 @@ class PriceCast implements CastsAttributes
             $saleId = $modelAttributes['sale_id'];
 
             return Cache::remember("sale_store_currency_{$saleId}", 3600, function () use ($saleId) {
-                $sale = \SmartTill\Core\Models\Sale::with('store.currency')->find($saleId);
+                $sale = \SmartTill\Core\Models\Sale::with('store')->find($saleId);
 
                 return $sale?->store;
             });
@@ -96,7 +97,7 @@ class PriceCast implements CastsAttributes
             $saleId = $model->sale_id ?? null;
             if ($saleId) {
                 return Cache::remember("sale_store_currency_{$saleId}", 3600, function () use ($saleId) {
-                    $sale = \SmartTill\Core\Models\Sale::with('store.currency')->find($saleId);
+                    $sale = \SmartTill\Core\Models\Sale::with('store')->find($saleId);
 
                     return $sale?->store;
                 });
@@ -133,6 +134,38 @@ class PriceCast implements CastsAttributes
         }
 
         return null;
+    }
+
+    private function resolveCurrency(?Store $store): ?Currency
+    {
+        if (! $store) {
+            return null;
+        }
+
+        try {
+            if ($store->relationLoaded('currency')) {
+                $loadedRelation = $store->getRelation('currency');
+                if ($loadedRelation instanceof Currency) {
+                    return $loadedRelation;
+                }
+            }
+
+            if (method_exists($store, 'currency')) {
+                $relatedCurrency = $store->currency()->first();
+                if ($relatedCurrency instanceof Currency) {
+                    return $relatedCurrency;
+                }
+            }
+        } catch (\Throwable) {
+            // Ignore relation errors and fallback to currency_id lookup.
+        }
+
+        $currencyId = $store->getAttribute('currency_id');
+        if (! $currencyId) {
+            return null;
+        }
+
+        return Currency::query()->find($currencyId);
     }
 
     /**
