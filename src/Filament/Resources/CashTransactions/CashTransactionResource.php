@@ -7,7 +7,6 @@ use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Htmlable;
 use SmartTill\Core\Filament\Resources\CashTransactions\Pages\ListCashTransactions;
 use SmartTill\Core\Filament\Resources\CashTransactions\Tables\CashTransactionsTable;
@@ -32,44 +31,7 @@ class CashTransactionResource extends Resource
 
     public static function canAccess(): bool
     {
-        $user = Filament::auth()->user();
-
-        if (! $user instanceof Authenticatable) {
-            return false;
-        }
-
-        $store = Filament::getTenant();
-
-        if (! $store) {
-            return false;
-        }
-
-        if (! $user instanceof \App\Models\User) {
-            return false;
-        }
-
-        // Check Super Admin first
-        $hasSuperAdmin = \Illuminate\Support\Facades\DB::table('user_role')
-            ->join('roles', 'user_role.role_id', '=', 'roles.id')
-            ->where('user_role.user_id', $user->id)
-            ->where('user_role.store_id', $store->id)
-            ->where('roles.panel', 'store')
-            ->where('roles.is_system', true)
-            ->whereNull('roles.store_id')
-            ->where('roles.name', 'Super Admin')
-            ->exists();
-
-        if ($hasSuperAdmin) {
-            return true;
-        }
-
-        return $user->roles()
-            ->wherePivot('store_id', $store->id)
-            ->where('panel', 'store')
-            ->whereHas('permissions', function ($query) {
-                $query->where('name', 'View Cash Transactions')->where('panel', 'store');
-            })
-            ->exists();
+        return ResourceCanAccessHelper::check('View Cash Transactions');
     }
 
     public static function canViewAny(): bool

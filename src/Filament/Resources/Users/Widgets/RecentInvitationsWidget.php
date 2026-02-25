@@ -15,6 +15,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
 
@@ -189,9 +190,19 @@ class RecentInvitationsWidget extends TableWidget
 
                             // Attach role in user_role table for permission checks
                             if (! empty($data['role_id'])) {
-                                if (! $existingUser->roles()->wherePivot('store_id', $store->id)->where('roles.id', $data['role_id'])->exists()) {
-                                    $existingUser->roles()->attach($data['role_id'], [
+                                $existingUserRoleExists = DB::table('user_role')
+                                    ->where('user_id', $existingUser->id)
+                                    ->where('store_id', $store->id)
+                                    ->where('role_id', (int) $data['role_id'])
+                                    ->exists();
+
+                                if (! $existingUserRoleExists) {
+                                    DB::table('user_role')->insert([
+                                        'user_id' => $existingUser->id,
+                                        'role_id' => (int) $data['role_id'],
                                         'store_id' => $store->id,
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
                                     ]);
                                 }
                             }
@@ -329,35 +340,7 @@ class RecentInvitationsWidget extends TableWidget
             return false;
         }
 
-        $user = Auth::user();
-        $store = filament()->getTenant();
-
-        if (! $user || ! $store) {
-            return false;
-        }
-
-        // Check Super Admin first
-        $hasSuperAdmin = \Illuminate\Support\Facades\DB::table('user_role')
-            ->join('roles', 'user_role.role_id', '=', 'roles.id')
-            ->where('user_role.user_id', $user->id)
-            ->where('user_role.store_id', $store->id)
-            ->where('roles.panel', 'store')
-            ->where('roles.is_system', true)
-            ->whereNull('roles.store_id')
-            ->where('roles.name', 'Super Admin')
-            ->exists();
-
-        if ($hasSuperAdmin) {
-            return true;
-        }
-
-        return $user->roles()
-            ->wherePivot('store_id', $store->id)
-            ->where('panel', 'store')
-            ->whereHas('permissions', function ($query) {
-                $query->where('name', 'Invite Users')->where('panel', 'store');
-            })
-            ->exists();
+        return ResourceCanAccessHelper::check('Invite Users');
     }
 
     private function canResend(): bool
@@ -366,35 +349,7 @@ class RecentInvitationsWidget extends TableWidget
             return false;
         }
 
-        $user = Auth::user();
-        $store = filament()->getTenant();
-
-        if (! $user || ! $store) {
-            return false;
-        }
-
-        // Check Super Admin first
-        $hasSuperAdmin = \Illuminate\Support\Facades\DB::table('user_role')
-            ->join('roles', 'user_role.role_id', '=', 'roles.id')
-            ->where('user_role.user_id', $user->id)
-            ->where('user_role.store_id', $store->id)
-            ->where('roles.panel', 'store')
-            ->where('roles.is_system', true)
-            ->whereNull('roles.store_id')
-            ->where('roles.name', 'Super Admin')
-            ->exists();
-
-        if ($hasSuperAdmin) {
-            return true;
-        }
-
-        return $user->roles()
-            ->wherePivot('store_id', $store->id)
-            ->where('panel', 'store')
-            ->whereHas('permissions', function ($query) {
-                $query->where('name', 'Resend Invitations')->where('panel', 'store');
-            })
-            ->exists();
+        return ResourceCanAccessHelper::check('Resend Invitations');
     }
 
     private function canCancel(): bool
@@ -403,35 +358,7 @@ class RecentInvitationsWidget extends TableWidget
             return false;
         }
 
-        $user = Auth::user();
-        $store = filament()->getTenant();
-
-        if (! $user || ! $store) {
-            return false;
-        }
-
-        // Check Super Admin first
-        $hasSuperAdmin = \Illuminate\Support\Facades\DB::table('user_role')
-            ->join('roles', 'user_role.role_id', '=', 'roles.id')
-            ->where('user_role.user_id', $user->id)
-            ->where('user_role.store_id', $store->id)
-            ->where('roles.panel', 'store')
-            ->where('roles.is_system', true)
-            ->whereNull('roles.store_id')
-            ->where('roles.name', 'Super Admin')
-            ->exists();
-
-        if ($hasSuperAdmin) {
-            return true;
-        }
-
-        return $user->roles()
-            ->wherePivot('store_id', $store->id)
-            ->where('panel', 'store')
-            ->whereHas('permissions', function ($query) {
-                $query->where('name', 'Cancel Invitations')->where('panel', 'store');
-            })
-            ->exists();
+        return ResourceCanAccessHelper::check('Cancel Invitations');
     }
 
     private function canResendInvitation($record): bool

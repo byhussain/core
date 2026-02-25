@@ -203,9 +203,10 @@ class UsersTable
                                 return ['roles' => []];
                             }
 
-                            $assignedRoles = $record->roles()
-                                ->wherePivot('store_id', $store->id)
-                                ->pluck('roles.id')
+                            $assignedRoles = DB::table('user_role')
+                                ->where('user_id', $record->id)
+                                ->where('store_id', $store->id)
+                                ->pluck('role_id')
                                 ->toArray();
 
                             return [
@@ -243,9 +244,10 @@ class UsersTable
                             }
 
                             // Get currently assigned role IDs for this store
-                            $currentRoleIds = $record->roles()
-                                ->wherePivot('store_id', $storeId)
-                                ->pluck('roles.id')
+                            $currentRoleIds = DB::table('user_role')
+                                ->where('user_id', $record->id)
+                                ->where('store_id', $storeId)
+                                ->pluck('role_id')
                                 ->toArray();
 
                             $manageableCurrentRoleIds = array_intersect($currentRoleIds, $assignableRoleIds);
