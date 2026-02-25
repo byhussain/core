@@ -63,7 +63,7 @@ class StocksRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('tax_summary')
                     ->label('Tax Amount')
-                    ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false)
+                    ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                     ->getStateUsing(function ($record): string {
                         $currencyCode = Filament::getTenant()?->currency->code ?? 'PKR';
                         $percentage = rtrim(rtrim(number_format((float) ($record->tax_percentage ?? 0), 6, '.', ''), '0'), '.') ?: '0';
@@ -321,7 +321,7 @@ class StocksRelationManager extends RelationManager
                             }
                         }),
                 ])
-                ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false)
+                ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                 ->columnSpanFull(),
             Grid::make()
                 ->schema([

@@ -55,7 +55,7 @@ class VariationsRelationManager extends RelationManager
                     ->label('Tax')
                     ->getStateUsing(function ($record): ?string {
                         $store = Filament::getTenant();
-                        if (! $store?->isTaxEnabled()) {
+                        if (! $store?->tax_enabled) {
                             return null;
                         }
 
@@ -71,7 +71,7 @@ class VariationsRelationManager extends RelationManager
 
                         return null;
                     })
-                    ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false),
+                    ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false),
                 TextColumn::make('requested_supplier_summary')
                     ->label('Supplier Price')
                     ->getStateUsing(function ($record): string {
@@ -111,7 +111,7 @@ class VariationsRelationManager extends RelationManager
                     ->label('Received Tax')
                     ->getStateUsing(function ($record): ?string {
                         $store = Filament::getTenant();
-                        if (! $store?->isTaxEnabled()) {
+                        if (! $store?->tax_enabled) {
                             return null;
                         }
 
@@ -127,7 +127,7 @@ class VariationsRelationManager extends RelationManager
 
                         return null;
                     })
-                    ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false)
+                    ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                     ->color(fn ($state, $record) => (float) ($record->pivot->received_tax_amount ?? 0) > 0 ? 'success' : 'gray'),
                 TextColumn::make('received_supplier_summary')
                     ->label('Received Supplier Price')

@@ -162,7 +162,7 @@ class ClosePurchaseOrder extends Page implements HasSchemas
             }
 
             $sumUnit += $qty * $unitPrice;
-            if ($store?->isTaxEnabled() && $taxAmount > 0) {
+            if ($store?->tax_enabled && $taxAmount > 0) {
                 $sumTax += $qty * $taxAmount;
             }
             $sumSupplier += $qty * $supplierPrice;
@@ -170,7 +170,7 @@ class ClosePurchaseOrder extends Page implements HasSchemas
 
         $this->total_received_quantity = $itemsCount;
         $this->total_received_unit_price = round($sumUnit, $decimalPlaces);
-        if ($store?->isTaxEnabled()) {
+        if ($store?->tax_enabled) {
             $this->total_received_tax_amount = round($sumTax, $decimalPlaces);
         } else {
             $this->total_received_tax_amount = 0;

@@ -71,7 +71,7 @@ class VariationInfolist
                                             ->color('info')
                                             ->copyable()
                                             ->helperText('Pakistan Customs Tariff Code for FBR')
-                                            ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false),
+                                            ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false),
                                     ])
                                     ->columns(2)
                                     ->columnSpanFull(),

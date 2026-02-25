@@ -170,7 +170,7 @@ class PurchaseOrderForm
                             ->deletable(true)
                             ->table(function (): array {
                                 $store = Filament::getTenant();
-                                $isTaxEnabled = $store?->isTaxEnabled() ?? false;
+                                $isTaxEnabled = $store?->tax_enabled ?? false;
 
                                 $columns = [
                                     Repeater\TableColumn::make('Product')->width($isTaxEnabled ? '45%' : '55%'),
@@ -189,7 +189,7 @@ class PurchaseOrderForm
                             })
                             ->schema(function (): array {
                                 $store = Filament::getTenant();
-                                $isTaxEnabled = $store?->isTaxEnabled() ?? false;
+                                $isTaxEnabled = $store?->tax_enabled ?? false;
 
                                 $schema = [
                                     Hidden::make('variation_id'),
@@ -399,14 +399,14 @@ class PurchaseOrderForm
                                             // Remove % from taxInput if present for calculation
                                             $taxInputNumeric = is_string($taxInput) ? str_replace('%', '', trim($taxInput)) : $taxInput;
 
-                                            if (filled($taxInputNumeric) && is_numeric($taxInputNumeric) && $store?->isTaxEnabled()) {
+                                            if (filled($taxInputNumeric) && is_numeric($taxInputNumeric) && $store?->tax_enabled) {
                                                 // Re-sync tax fields with existing percentage to recalculate amount based on new price
                                                 $taxPercentValue = (float) $taxInputNumeric;
                                                 self::syncTaxFields($get, $set, $taxPercentValue);
                                                 // Format with % for display
                                                 $formattedValue = rtrim(rtrim(number_format($taxPercentValue, 6, '.', ''), '0'), '.');
                                                 $set('requested_tax_input', $formattedValue.'%');
-                                            } elseif (is_numeric($taxPercentage) && (float) $taxPercentage > 0 && $store?->isTaxEnabled()) {
+                                            } elseif (is_numeric($taxPercentage) && (float) $taxPercentage > 0 && $store?->tax_enabled) {
                                                 // Recalculate amount for existing percentage
                                                 $taxAmount = round($unitPrice * ((float) $taxPercentage / 100), $decimalPlaces);
                                                 $set('requested_tax_amount', $taxAmount);
@@ -419,7 +419,7 @@ class PurchaseOrderForm
                                                 $taxPercent = $store?->getEffectiveTaxPercentage($barcode) ?? 0;
                                                 $taxAmount = $store?->getEffectiveTaxAmount($barcode, $unitPrice) ?? 0;
 
-                                                if ($taxPercent > 0 && $store?->isTaxEnabled()) {
+                                                if ($taxPercent > 0 && $store?->tax_enabled) {
                                                     $set('requested_tax_percentage', $taxPercent);
                                                     $set('requested_tax_amount', round($taxAmount, $decimalPlaces));
                                                     $formattedValue = rtrim(rtrim(number_format((float) $taxPercent, 6, '.', ''), '0'), '.');
@@ -458,7 +458,7 @@ class PurchaseOrderForm
 
                                             return null;
                                         })
-                                        ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false)
+                                        ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                                         ->extraInputAttributes([
                                             'class' => 'text-xs py-0.5 px-1.5 h-7',
                                             'data-sale-item-input' => 'true',
@@ -482,7 +482,7 @@ class PurchaseOrderForm
                                             }
 
                                             $store = Filament::getTenant();
-                                            if (! $store?->isTaxEnabled()) {
+                                            if (! $store?->tax_enabled) {
                                                 return;
                                             }
 
@@ -699,7 +699,7 @@ class PurchaseOrderForm
                             ->inputMode('decimal')
                             ->step(0.01)
                             ->rule('regex:/^\\d+(\\.\\d{1,2})?$/')
-                            ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false)
+                            ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                             ->columnSpanFull(),
 
                         TextInput::make('total_requested_unit_price')
@@ -760,7 +760,7 @@ class PurchaseOrderForm
 
             // Calculate tax: use stored amount if available, otherwise calculate from percentage
             $taxAmount = 0.0;
-            if ($store?->isTaxEnabled()) {
+            if ($store?->tax_enabled) {
                 $taxAmount = (float) ($item['requested_tax_amount'] ?? 0);
                 if ($taxAmount === 0.0) {
                     $taxP = (float) ($item['requested_tax_percentage'] ?? 0);
@@ -834,7 +834,7 @@ class PurchaseOrderForm
                 $taxPercentage = (float) ($item['requested_tax_percentage'] ?? 0);
                 $taxInput = $item['requested_tax_input'] ?? null;
 
-                if ($store?->isTaxEnabled() && $unitPrice > 0 && $taxPercentage > 0) {
+                if ($store?->tax_enabled && $unitPrice > 0 && $taxPercentage > 0) {
                     // Recalculate amount based on new price
                     $item['requested_tax_amount'] = round($unitPrice * ($taxPercentage / 100), $decimalPlaces);
                     // Keep the input as percentage with % sign for display
@@ -852,7 +852,7 @@ class PurchaseOrderForm
                         $formattedValue = rtrim(rtrim(number_format((float) $taxPercentage, 6, '.', ''), '0'), '.');
                         $item['requested_tax_input'] = $formattedValue.'%';
                     }
-                } elseif ($store?->isTaxEnabled() && filled($taxInput)) {
+                } elseif ($store?->tax_enabled && filled($taxInput)) {
                     // Remove % if present for calculation
                     $taxInputNumeric = is_string($taxInput) ? str_replace('%', '', trim($taxInput)) : $taxInput;
                     if (is_numeric($taxInputNumeric)) {
@@ -863,7 +863,7 @@ class PurchaseOrderForm
                         $formattedValue = rtrim(rtrim(number_format($taxPercent, 6, '.', ''), '0'), '.');
                         $item['requested_tax_input'] = $formattedValue.'%';
                     }
-                } elseif (! $store?->isTaxEnabled() || $taxPercentage === 0) {
+                } elseif (! $store?->tax_enabled || $taxPercentage === 0) {
                     $item['requested_tax_percentage'] = 0;
                     $item['requested_tax_amount'] = 0;
                     $item['requested_tax_input'] = null;
@@ -919,7 +919,7 @@ class PurchaseOrderForm
             $supplierPrice = $unitPrice - ($unitPrice * ($supplierPercentage / 100));
 
             $taxInput = null;
-            if ($store?->isTaxEnabled() && $taxPercentage > 0) {
+            if ($store?->tax_enabled && $taxPercentage > 0) {
                 $formattedValue = rtrim(rtrim(number_format((float) $taxPercentage, 6, '.', ''), '0'), '.');
                 $taxInput = $formattedValue.'%';
             }
@@ -966,7 +966,7 @@ class PurchaseOrderForm
         $currency = $store?->currency;
         $decimalPlaces = $currency->decimal_places ?? 2;
 
-        if ($percentage < 0 || $percentage > 999.999999 || ! $store?->isTaxEnabled()) {
+        if ($percentage < 0 || $percentage > 999.999999 || ! $store?->tax_enabled) {
             $set('requested_tax_percentage', 0);
             $set('requested_tax_amount', 0);
 

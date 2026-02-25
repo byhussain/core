@@ -64,7 +64,7 @@ class ReceiveForm
 
                                 $items = collect($items)->map(function (array $item) use ($decimalPlaces, $store): array {
                                     // Ensure received_tax_input has % sign if it exists (prefilled in ClosePurchaseOrder mount)
-                                    if (! empty($item['received_tax_input']) && $store?->isTaxEnabled()) {
+                                    if (! empty($item['received_tax_input']) && $store?->tax_enabled) {
                                         $taxInputStr = (string) $item['received_tax_input'];
                                         if (! str_ends_with($taxInputStr, '%')) {
                                             $numericValue = (float) str_replace('%', '', trim($taxInputStr));
@@ -127,7 +127,7 @@ class ReceiveForm
                             })
                             ->table(function (): array {
                                 $store = Filament::getTenant();
-                                $isTaxEnabled = $store?->isTaxEnabled() ?? false;
+                                $isTaxEnabled = $store?->tax_enabled ?? false;
 
                                 $columns = [
                                     Repeater\TableColumn::make('Product')->width($isTaxEnabled ? '30%' : '40%'),
@@ -147,7 +147,7 @@ class ReceiveForm
                             })
                             ->schema(function (): array {
                                 $store = Filament::getTenant();
-                                $isTaxEnabled = $store?->isTaxEnabled() ?? false;
+                                $isTaxEnabled = $store?->tax_enabled ?? false;
 
                                 $schema = [
                                     Hidden::make('variation_id'),
@@ -322,7 +322,7 @@ class ReceiveForm
                                                 $taxPercent = $stockTaxPercent;
                                             }
 
-                                            if ($taxPercent > 0 && $store?->isTaxEnabled()) {
+                                            if ($taxPercent > 0 && $store?->tax_enabled) {
                                                 $set('received_tax_percentage', $taxPercent);
                                                 $taxAmount = round($roundedDisplayPrice * ($taxPercent / 100), $decimalPlaces);
                                                 $set('received_tax_amount', $taxAmount);
@@ -396,14 +396,14 @@ class ReceiveForm
                                             // Remove % from taxInput if present for calculation
                                             $taxInputNumeric = is_string($taxInput) ? str_replace('%', '', trim($taxInput)) : $taxInput;
 
-                                            if (filled($taxInputNumeric) && is_numeric($taxInputNumeric) && $store?->isTaxEnabled()) {
+                                            if (filled($taxInputNumeric) && is_numeric($taxInputNumeric) && $store?->tax_enabled) {
                                                 // Re-sync tax fields with existing percentage to recalculate amount based on new price
                                                 $taxPercentValue = (float) $taxInputNumeric;
                                                 self::syncReceivedTaxFields($get, $set, $taxPercentValue);
                                                 // Format with % for display
                                                 $formattedValue = rtrim(rtrim(number_format($taxPercentValue, 6, '.', ''), '0'), '.');
                                                 $set('received_tax_input', $formattedValue.'%');
-                                            } elseif (is_numeric($taxPercentage) && (float) $taxPercentage > 0 && $store?->isTaxEnabled()) {
+                                            } elseif (is_numeric($taxPercentage) && (float) $taxPercentage > 0 && $store?->tax_enabled) {
                                                 // Recalculate amount for existing percentage
                                                 $taxAmount = round($unitPrice * ((float) $taxPercentage / 100), $decimalPlaces);
                                                 $set('received_tax_amount', $taxAmount);
@@ -424,7 +424,7 @@ class ReceiveForm
                                                     $taxPercent = $stockTaxPercent;
                                                 }
 
-                                                if ($taxPercent > 0 && $store?->isTaxEnabled()) {
+                                                if ($taxPercent > 0 && $store?->tax_enabled) {
                                                     $set('received_tax_percentage', $taxPercent);
                                                     $taxAmount = round($unitPrice * ($taxPercent / 100), $decimalPlaces);
                                                     $set('received_tax_amount', $taxAmount);
@@ -473,7 +473,7 @@ class ReceiveForm
 
                                             return null;
                                         })
-                                        ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false)
+                                        ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                                         ->extraInputAttributes([
                                             'class' => 'text-xs py-0.5 px-1.5 h-7',
                                             'data-sale-item-input' => 'true',
@@ -497,7 +497,7 @@ class ReceiveForm
                                             }
 
                                             $store = Filament::getTenant();
-                                            if (! $store?->isTaxEnabled()) {
+                                            if (! $store?->tax_enabled) {
                                                 return;
                                             }
 
@@ -771,7 +771,7 @@ class ReceiveForm
                             ->disabled()
                             ->prefix(fn ($record) => $record?->store?->currency?->code ?? Filament::getTenant()?->currency->code ?? 'PKR')
                             ->numeric()
-                            ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false)
+                            ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                             ->columnSpanFull(),
                         TextInput::make('total_received_unit_price')
                             ->label('Total Received Unit Price')
@@ -822,7 +822,7 @@ class ReceiveForm
         $currency = $store?->currency;
         $decimalPlaces = $currency->decimal_places ?? 2;
 
-        if ($percentage < 0 || $percentage > 999.999999 || ! $store?->isTaxEnabled()) {
+        if ($percentage < 0 || $percentage > 999.999999 || ! $store?->tax_enabled) {
             $set('received_tax_percentage', 0);
             $set('received_tax_amount', 0);
 
@@ -948,7 +948,7 @@ class ReceiveForm
             $taxAmount = (float) ($item['received_tax_amount'] ?? 0);
 
             // Only count tax if tax is enabled
-            if ($store?->isTaxEnabled() && $taxAmount > 0) {
+            if ($store?->tax_enabled && $taxAmount > 0) {
                 $sumTax += $qty * $taxAmount;
             }
 
@@ -983,7 +983,7 @@ class ReceiveForm
         }
 
         $set($statePathPrefix.'total_received_quantity', $itemsCount);
-        if ($store?->isTaxEnabled()) {
+        if ($store?->tax_enabled) {
             $set($statePathPrefix.'total_received_tax_amount', round($sumTax, $decimalPlaces));
         } else {
             $set($statePathPrefix.'total_received_tax_amount', 0);

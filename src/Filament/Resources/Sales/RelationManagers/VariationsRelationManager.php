@@ -68,7 +68,7 @@ class VariationsRelationManager extends RelationManager
                     ->html(),
                 TextColumn::make('pivot.tax')
                     ->label('Tax')
-                    ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false)
+                    ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                     ->getStateUsing(function ($record) {
                         $tax = $record->pivot->tax ?? 0;
                         $qty = $record->pivot->quantity ?? 1;

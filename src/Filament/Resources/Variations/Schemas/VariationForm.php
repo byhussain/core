@@ -40,7 +40,7 @@ class VariationForm
                             ->maxLength(9)
                             ->helperText('Pakistan Custom Tariff Code for FBR compliance')
                             ->placeholder('e.g., 1234.5678')
-                            ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false),
+                            ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false),
                         Fieldset::make('Price & Sale Information')
                             ->columns()
                             ->schema([

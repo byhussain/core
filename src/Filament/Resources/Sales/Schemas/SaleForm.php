@@ -1865,7 +1865,7 @@ class SaleForm
                                             ->prefix(fn ($record) => $record?->store?->currency?->code ?? Filament::getTenant()?->currency->code ?? 'PKR')
                                             ->inlineLabel()
                                             ->disabled()
-                                            ->visible(fn ($record) => ($record?->store ?? Filament::getTenant())?->isTaxEnabled() ?? false),
+                                            ->visible(fn ($record) => ($record?->store ?? Filament::getTenant())?->tax_enabled ?? false),
                                         Hidden::make('sale_discount_type'),
                                         Hidden::make('sale_discount_percentage'),
                                         Hidden::make('sale_discount_amount'), // Store the calculated discount amount
@@ -2062,7 +2062,7 @@ class SaleForm
                                                 if (! $store->isPakistan()) {
                                                     return false;
                                                 }
-                                                if (! $store->isTaxEnabled()) {
+                                                if (! $store->tax_enabled) {
                                                     return false;
                                                 }
                                                 // Show toggle only if POSID is configured for the current environment
@@ -3193,7 +3193,7 @@ class SaleForm
     {
         $sale->loadMissing(['variations', 'preparableItems', 'store.currency']);
         $store = $sale->store;
-        $isTaxEnabled = $store?->isTaxEnabled() ?? false;
+        $isTaxEnabled = $store?->tax_enabled ?? false;
         $products = $sale->variations()->withPivot(['quantity', 'unit_price', 'tax', 'discount', 'is_preparable', 'total'])->get();
         $subtotal = 0;
         $totalTax = 0;
@@ -3460,7 +3460,7 @@ class SaleForm
 
                         // Ensure tax is calculated if missing or 0
                         $taxValue = (float) ($variation['tax'] ?? 0);
-                        if ($taxValue == 0 && $sale->store?->isTaxEnabled() && isset($variation['stock_id']) && $variation['stock_id']) {
+                        if ($taxValue == 0 && $sale->store?->tax_enabled && isset($variation['stock_id']) && $variation['stock_id']) {
                             $stock = Stock::find($variation['stock_id']);
                             if ($stock) {
                                 $unitPrice = (float) ($variation['unit_price'] ?? 0);
@@ -3797,7 +3797,7 @@ class SaleForm
 
                         // Ensure tax is calculated if missing or 0
                         $taxValue = (float) ($variation['tax'] ?? 0);
-                        if ($taxValue == 0 && $sale->store?->isTaxEnabled() && isset($variation['stock_id']) && $variation['stock_id']) {
+                        if ($taxValue == 0 && $sale->store?->tax_enabled && isset($variation['stock_id']) && $variation['stock_id']) {
                             $stock = Stock::find($variation['stock_id']);
                             if ($stock) {
                                 $unitPrice = (float) ($variation['unit_price'] ?? 0);

@@ -71,7 +71,7 @@ class PurchaseOrderInfolist
                                             ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
                                             ->icon(Heroicon::OutlinedPercentBadge)
                                             ->weight('medium')
-                                            ->visible(fn () => Filament::getTenant()?->isTaxEnabled() ?? false)
+                                            ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                                             ->columnSpanFull(),
 
                                         TextEntry::make('total_requested_unit_price')
@@ -123,7 +123,7 @@ class PurchaseOrderInfolist
                                             ->weight('medium')
                                             ->visible(function ($record): bool {
                                                 $store = Filament::getTenant();
-                                                if (! $store?->isTaxEnabled()) {
+                                                if (! $store?->tax_enabled) {
                                                     return false;
                                                 }
 
