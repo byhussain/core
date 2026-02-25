@@ -21,11 +21,14 @@ use SmartTill\Core\Observers\StockObserver;
 use SmartTill\Core\Observers\TransactionObserver;
 use SmartTill\Core\Observers\UnitObserver;
 use SmartTill\Core\Observers\VariationObserver;
+use SmartTill\Core\Services\CoreAccessBootstrapService;
 
 class CoreServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(CoreAccessBootstrapService::class, CoreAccessBootstrapService::class);
+
         $this->commands([
             CoreInstallCommand::class,
         ]);
@@ -45,5 +48,9 @@ class CoreServiceProvider extends ServiceProvider
         Sale::observe(SaleObserver::class);
         Payment::observe(PaymentObserver::class);
         Transaction::observe(TransactionObserver::class);
+
+        if (class_exists(\App\Models\Store::class) && ! class_exists(\App\Observers\StoreObserver::class)) {
+            \App\Models\Store::observe(\SmartTill\Core\Observers\StoreObserver::class);
+        }
     }
 }
