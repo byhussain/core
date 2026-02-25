@@ -68,7 +68,7 @@ class ViewSale extends ViewRecord
                     }
 
                     // FBR is only available for Pakistan stores
-                    if (! $record->store?->isPakistan()) {
+                    if (($record->store?->country?->code ?? null) !== 'PK') {
                         return false;
                     }
 

@@ -2059,7 +2059,7 @@ class SaleForm
                                                     return false;
                                                 }
                                                 // Show toggle only if store is in Pakistan AND taxes are enabled AND POSID is configured
-                                                if (! $store->isPakistan()) {
+                                                if (($store?->country?->code ?? null) !== 'PK') {
                                                     return false;
                                                 }
                                                 if (! $store->tax_enabled) {

@@ -76,7 +76,7 @@ class FbrSettings extends Page
                             ->password()
                             ->revealable(),
                     ])
-                    ->disabled(fn (): bool => ! (Filament::getTenant()?->isPakistan() ?? false)),
+                    ->disabled(fn (): bool => (Filament::getTenant()?->country?->code ?? null) !== 'PK'),
             ]);
     }
 
@@ -89,7 +89,7 @@ class FbrSettings extends Page
         /** @var Store $store */
         $store = Filament::getTenant();
 
-        if (! $store->isPakistan()) {
+        if (($store?->country?->code ?? null) !== 'PK') {
             Notification::make()
                 ->title('FBR settings are only available for Pakistan stores')
                 ->warning()
