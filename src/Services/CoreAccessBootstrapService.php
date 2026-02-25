@@ -35,32 +35,26 @@ class CoreAccessBootstrapService
             return;
         }
 
-        if (Schema::connection($connection)->hasTable('store_user') && ! DB::connection($connection)->table('store_user')
-            ->where('store_id', $store->id)
-            ->where('user_id', $user->id)
-            ->exists()) {
-            $storeUserData = [
-                'store_id' => $store->id,
-                'user_id' => $user->id,
-            ];
+        if (Schema::connection($connection)->hasTable('store_user') && Schema::connection($connection)->hasColumn('store_user', 'role_id')) {
+            $storeUserQuery = DB::connection($connection)->table('store_user')
+                ->where('store_id', $store->id)
+                ->where('user_id', $user->id);
 
-            if (Schema::connection($connection)->hasColumn('store_user', 'cash_in_hand')) {
-                $storeUserData['cash_in_hand'] = 0;
+            if ($storeUserQuery->exists()) {
+                $updates = [
+                    'role_id' => $storeSuperAdminRole->id,
+                ];
+
+                if (Schema::connection($connection)->hasColumn('store_user', 'updated_at')) {
+                    $updates['updated_at'] = now();
+                }
+
+                $storeUserQuery->update($updates);
             }
+        }
 
-            if (Schema::connection($connection)->hasColumn('store_user', 'role_id')) {
-                $storeUserData['role_id'] = $storeSuperAdminRole->id;
-            }
-
-            if (Schema::connection($connection)->hasColumn('store_user', 'created_at')) {
-                $storeUserData['created_at'] = now();
-            }
-
-            if (Schema::connection($connection)->hasColumn('store_user', 'updated_at')) {
-                $storeUserData['updated_at'] = now();
-            }
-
-            DB::connection($connection)->table('store_user')->insert($storeUserData);
+        if (! Schema::connection($connection)->hasTable('user_role')) {
+            return;
         }
 
         if (! DB::connection($connection)->table('user_role')
