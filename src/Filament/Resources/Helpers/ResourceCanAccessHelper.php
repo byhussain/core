@@ -6,6 +6,21 @@ use Filament\Facades\Filament;
 
 class ResourceCanAccessHelper
 {
+    private const POS_USER_MANAGEMENT_PERMISSIONS = [
+        'View Users',
+        'Remove Users',
+        'Collect Cash from Users',
+        'View Invitations',
+        'Invite Users',
+        'Resend Invitations',
+        'Cancel Invitations',
+        'View Roles',
+        'Create Roles',
+        'Edit Roles',
+        'Delete Roles',
+        'View Cash Transactions',
+    ];
+
     public static function check(string $permission): bool
     {
         $user = Filament::auth()->user();
@@ -15,7 +30,7 @@ class ResourceCanAccessHelper
         }
 
         if (method_exists($user, 'shouldBypassCorePermissions') && $user->shouldBypassCorePermissions()) {
-            return true;
+            return ! in_array($permission, self::POS_USER_MANAGEMENT_PERMISSIONS, true);
         }
 
         $store = Filament::getTenant();
