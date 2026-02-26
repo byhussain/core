@@ -17,6 +17,9 @@
       "SmartTill\\Core\\": "src/"
     }
   },
+  "scripts": {
+    "test": "@php vendor/bin/pest"
+  },
   "extra": {
     "laravel": {
       "providers": [
@@ -25,5 +28,14 @@
     }
   },
   "minimum-stability": "stable",
-  "prefer-stable": true
+  "prefer-stable": true,
+  "require-dev": {
+    "pestphp/pest": "^4",
+    "pestphp/pest-plugin-laravel": "^4"
+  },
+  "config": {
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  }
 }

@@ -152,7 +152,7 @@ class SaleForm
                                             ->extraInputAttributes([
                                                 'class' => 'text-xs py-0.5 px-1.5 h-7',
                                                 'data-sale-item-input' => 'true',
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
                                             ->afterStateUpdated(function ($state, $set, $get) {
                                                 // Round to 6 decimal places, allow negative quantities
@@ -214,7 +214,7 @@ class SaleForm
                                                 'class' => 'text-xs py-0.5 px-1.5 h-7',
                                                 'data-price-input' => 'true',
                                                 'data-sale-item-input' => 'true',
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
                                             ->extraAttributes([
                                                 'class' => 'price-field-wrapper',
@@ -305,7 +305,7 @@ class SaleForm
                                             ->extraInputAttributes([
                                                 'class' => 'text-xs py-0.5 px-1.5 h-7',
                                                 'data-sale-item-input' => 'true',
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
                                             ->helperText(function ($get) {
                                                 $quantity = (float) ($get('quantity') ?? 1);
@@ -440,7 +440,7 @@ class SaleForm
                                             ->extraInputAttributes([
                                                 'class' => 'text-xs py-0.5 px-1.5 h-7',
                                                 'data-sale-item-input' => 'true',
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
                                             ->afterStateUpdated(function ($state, $set, $get) {
                                                 // When total is changed, calculate new discount
@@ -508,7 +508,7 @@ class SaleForm
                                             ->live(onBlur: true)
                                             ->extraInputAttributes([
                                                 'class' => 'text-xs py-0.5 px-1.5 h-7',
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
                                             ->afterStateUpdated(function ($state, $set, $get) {
                                                 // Round to 6 decimal places, allow negative quantities
@@ -600,7 +600,7 @@ class SaleForm
                                             ->extraInputAttributes([
                                                 'class' => 'text-xs py-0.5 px-1.5 h-7',
                                                 'data-price-input' => 'true',
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
                                             ->extraAttributes([
                                                 'class' => 'price-field-wrapper',
@@ -748,7 +748,7 @@ class SaleForm
                                             })
                                             ->extraInputAttributes([
                                                 'class' => 'text-xs py-0.5 px-1.5 h-7',
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
                                             ->helperText(function ($get) {
                                                 $qty = (float) ($get('qty') ?? 1);
@@ -908,7 +908,7 @@ class SaleForm
                                             ->live(onBlur: true)
                                             ->extraInputAttributes([
                                                 'class' => 'text-xs py-0.5 px-1.5 h-7',
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
                                             ->afterStateUpdated(function ($state, $set, $get) {
                                                 // When total is changed, calculate new discount
@@ -1479,7 +1479,7 @@ class SaleForm
                                                     ->extraInputAttributes([
                                                         'class' => 'text-xs py-0.5 px-1.5 h-7',
                                                         'data-sale-item-input' => 'true',
-                                                        'x-on:focus' => '$event.target.select()',
+                                                        'x-on:focus' => '$event.target.select && $event.target.select()',
                                                     ])
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         // CRITICAL: Ensure item_id is set before any operations
@@ -1583,7 +1583,7 @@ class SaleForm
                                                         'class' => 'text-xs py-0.5 px-1.5 h-7',
                                                         'data-price-input' => 'true',
                                                         'data-sale-item-input' => 'true',
-                                                        'x-on:focus' => '$event.target.select()',
+                                                        'x-on:focus' => '$event.target.select && $event.target.select()',
                                                     ])
                                                     ->extraAttributes([
                                                         'class' => 'price-field-wrapper',
@@ -1679,7 +1679,7 @@ class SaleForm
                                                     ->extraInputAttributes([
                                                         'class' => 'text-xs py-0.5 px-1.5 h-7',
                                                         'data-sale-item-input' => 'true',
-                                                        'x-on:focus' => '$event.target.select()',
+                                                        'x-on:focus' => '$event.target.select && $event.target.select()',
                                                     ])
                                                     ->helperText(function ($get) {
                                                         $quantity = (float) ($get('quantity') ?? 1);
@@ -1815,7 +1815,7 @@ class SaleForm
                                                     ->extraInputAttributes([
                                                         'class' => 'text-xs py-0.5 px-1.5 h-7',
                                                         'data-sale-item-input' => 'true',
-                                                        'x-on:focus' => '$event.target.select()',
+                                                        'x-on:focus' => '$event.target.select && $event.target.select()',
                                                     ])
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         // When total is changed, calculate new discount
@@ -1877,7 +1877,7 @@ class SaleForm
                                             ->live(onBlur: true)
                                             ->inlineLabel()
                                             ->extraInputAttributes([
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
                                             ->afterStateHydrated(function ($state, $set, $get) {
                                                 // When loading existing data, format percentage discounts correctly
@@ -1998,7 +1998,7 @@ class SaleForm
                                             ->default(0)
                                             ->numeric()
                                             ->extraInputAttributes([
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
                                             ->afterStateUpdated(function ($state, $set, $get) {
                                                 $freightFare = round(max(0, (float) $state), 2);
@@ -2028,7 +2028,7 @@ class SaleForm
                                             ->rows(3)
                                             ->maxLength(1000)
                                             ->extraInputAttributes([
-                                                'x-on:focus' => '$event.target.select()',
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ]),
                                     ])
                                     ->columnSpanFull(),

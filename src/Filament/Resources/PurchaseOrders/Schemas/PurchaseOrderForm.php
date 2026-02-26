@@ -233,7 +233,7 @@ class PurchaseOrderForm
                                         ->extraInputAttributes([
                                             'class' => 'text-xs py-0.5 px-1.5 h-7',
                                             'data-sale-item-input' => 'true',
-                                            'x-on:focus' => '$event.target.select()',
+                                            'x-on:focus' => '$event.target.select && $event.target.select()',
                                         ])
                                         ->dehydrated(),
                                     TextInput::make('requested_quantity')
@@ -244,7 +244,7 @@ class PurchaseOrderForm
                                         ->extraInputAttributes([
                                             'class' => 'text-xs py-0.5 px-1.5 h-7',
                                             'data-sale-item-input' => 'true',
-                                            'x-on:focus' => '$event.target.select()',
+                                            'x-on:focus' => '$event.target.select && $event.target.select()',
                                         ])
                                         ->afterStateUpdated(function (mixed $state, $set, $get) {
                                             $rounded = $state;
@@ -369,7 +369,7 @@ class PurchaseOrderForm
                                         ->extraInputAttributes([
                                             'class' => 'text-xs py-0.5 px-1.5 h-7',
                                             'data-sale-item-input' => 'true',
-                                            'x-on:focus' => '$event.target.select()',
+                                            'x-on:focus' => '$event.target.select && $event.target.select()',
                                         ])
                                         ->afterStateUpdated(function (mixed $state, $set, $get): void {
                                             $store = Filament::getTenant();
@@ -466,7 +466,7 @@ class PurchaseOrderForm
                                         ->extraInputAttributes([
                                             'class' => 'text-xs py-0.5 px-1.5 h-7',
                                             'data-sale-item-input' => 'true',
-                                            'x-on:focus' => '$event.target.select()',
+                                            'x-on:focus' => '$event.target.select && $event.target.select()',
                                         ])
                                         ->afterStateHydrated(function ($state, $set, $get): void {
                                             // Always ensure % sign is present for display
@@ -562,7 +562,7 @@ class PurchaseOrderForm
                                     ->extraInputAttributes([
                                         'class' => 'text-xs py-0.5 px-1.5 h-7',
                                         'data-sale-item-input' => 'true',
-                                        'x-on:focus' => '$event.target.select()',
+                                        'x-on:focus' => '$event.target.select && $event.target.select()',
                                     ])
                                     ->afterStateHydrated(function ($state, $set, $get): void {
                                         if ($state !== null && $state !== '') {

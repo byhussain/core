@@ -389,7 +389,7 @@ class ProductForm
                 ->extraInputAttributes([
                     'class' => 'text-xs py-0.5 px-1.5 h-7',
                     'data-sale-item-input' => 'true',
-                    'x-on:focus' => '$event.target.select()',
+                    'x-on:focus' => '$event.target.select && $event.target.select()',
                 ])
                 ->dehydrated(),
             Hidden::make('variations_warning')->dehydrated(false),
@@ -401,7 +401,7 @@ class ProductForm
                 ->extraInputAttributes([
                     'class' => 'text-xs py-0.5 px-1.5 h-7',
                     'data-sale-item-input' => 'true',
-                    'x-on:focus' => '$event.target.select()',
+                    'x-on:focus' => '$event.target.select && $event.target.select()',
                 ])
                 ->placeholder('SKU123'),
             TextInput::make('price')
@@ -412,7 +412,7 @@ class ProductForm
                 ->extraInputAttributes([
                     'class' => 'text-xs py-0.5 px-1.5 h-7',
                     'data-sale-item-input' => 'true',
-                    'x-on:focus' => '$event.target.select()',
+                    'x-on:focus' => '$event.target.select && $event.target.select()',
                 ])
                 ->afterStateUpdated(function ($state, $set, $get, $livewire) {
                     $store = Filament::getTenant();
@@ -443,7 +443,7 @@ class ProductForm
                 ->extraInputAttributes([
                     'class' => 'text-xs py-0.5 px-1.5 h-7',
                     'data-sale-item-input' => 'true',
-                    'x-on:focus' => '$event.target.select()',
+                    'x-on:focus' => '$event.target.select && $event.target.select()',
                 ])
                 ->afterStateUpdated(function ($state, $set, $get, $livewire) {
                     $store = Filament::getTenant();
