@@ -88,7 +88,7 @@ class ReceiptSettings extends Page
 
         $settingsService->setSetting($store, CoreStoreSettingsService::SETTING_RECEIPT_FORMAT, $data['receipt_format'], 'dropdown');
         $settingsService->setSetting($store, CoreStoreSettingsService::SETTING_RECEIPT_SHOW_DECIMALS_IN_TOTAL, (bool) $data['show_decimals_in_total'], 'dropdown');
-        $settingsService->setSetting($store, CoreStoreSettingsService::SETTING_RECEIPT_SHOW_DIFFERENCES, (bool) $data['show_differences'], 'dropdown');
+        $settingsService->setSetting($store, CoreStoreSettingsService::SETTING_RECEIPT_SHOW_DIFFERENCES, (bool) ($data['show_differences'] ?? false), 'dropdown');
 
         Notification::make()
             ->title('Receipt settings saved')
