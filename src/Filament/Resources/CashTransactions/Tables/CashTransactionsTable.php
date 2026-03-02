@@ -7,6 +7,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use SmartTill\Core\Enums\CashTransactionType;
+use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 
 class CashTransactionsTable
 {
@@ -16,6 +17,7 @@ class CashTransactionsTable
             ->columns([
                 TextColumn::make('user.name')
                     ->label('User')
+                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('type')

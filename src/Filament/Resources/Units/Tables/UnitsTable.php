@@ -20,6 +20,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use SmartTill\Core\Filament\Exports\UnitExporter;
 use SmartTill\Core\Filament\Imports\UnitImporter;
+use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
 
 class UnitsTable
@@ -29,6 +30,7 @@ class UnitsTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable(),
                 TextColumn::make('scope')
                     ->label('Scope')

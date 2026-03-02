@@ -20,6 +20,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Route;
 use SmartTill\Core\Enums\PurchaseOrderStatus;
+use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\Suppliers\RelationManagers\PurchaseOrdersRelationManager;
 
 class PurchaseOrdersTable
@@ -30,6 +31,7 @@ class PurchaseOrdersTable
             ->columns([
                 TextColumn::make('reference')
                     ->prefix('#')
+                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable(),
                 TextColumn::make('supplier.name')
                     ->label('Supplier')

@@ -20,6 +20,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use SmartTill\Core\Filament\Exports\CategoryExporter;
 use SmartTill\Core\Filament\Imports\CategoryImporter;
+use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
 
 class CategoriesTable
@@ -29,6 +30,7 @@ class CategoriesTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable(),
                 TextColumn::make('products_count')
                     ->label('Products')

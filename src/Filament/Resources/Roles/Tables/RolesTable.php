@@ -12,6 +12,7 @@ use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 
 class RolesTable
 {
@@ -42,6 +43,7 @@ class RolesTable
             ->columns([
                 TextColumn::make('name')
                     ->label('Role Name')
+                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable()
                     ->sortable()
                     ->weight('medium'),

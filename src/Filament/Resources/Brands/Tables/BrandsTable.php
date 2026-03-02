@@ -20,6 +20,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use SmartTill\Core\Filament\Exports\BrandExporter;
 use SmartTill\Core\Filament\Imports\BrandImporter;
+use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
 
 class BrandsTable
@@ -29,6 +30,7 @@ class BrandsTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable(),
                 TextColumn::make('products_count')
                     ->label('Products')

@@ -13,6 +13,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use SmartTill\Core\Filament\Exports\VariationExporter;
 use SmartTill\Core\Filament\Imports\VariationStockImporter;
+use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
 
 class VariationsTable
@@ -28,6 +29,7 @@ class VariationsTable
             ])
             ->columns([
                 TextColumn::make('description')
+                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable(),
                 TextColumn::make('sku')
                     ->label('SKU')

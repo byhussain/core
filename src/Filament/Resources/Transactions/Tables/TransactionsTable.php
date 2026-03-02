@@ -7,6 +7,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use SmartTill\Core\Filament\Resources\Customers\RelationManagers\TransactionsRelationManager as CustomerTransactionsRelationManager;
+use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
 use SmartTill\Core\Filament\Resources\Sales\SaleResource;
 use SmartTill\Core\Filament\Resources\Suppliers\RelationManagers\TransactionsRelationManager as SupplierTransactionsRelationManager;
@@ -22,7 +23,16 @@ class TransactionsTable
             ->columns([
                 TextColumn::make('referenceable')
                     ->label('Reference')
-                    ->description(fn ($record) => class_basename($record->referenceable_type), 'above')
+                    ->description(function ($record): ?string {
+                        $resourceType = class_basename($record->referenceable_type);
+                        $ids = RecordIdentityDescription::make($record);
+
+                        if ($ids === null) {
+                            return $resourceType;
+                        }
+
+                        return $resourceType.' | '.$ids;
+                    }, 'above')
                     ->color('primary')
                     ->prefix('#')
                     ->formatStateUsing(fn ($record) => $record->referenceable?->reference ?? $record->referenceable?->id)

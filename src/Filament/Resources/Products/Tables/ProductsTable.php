@@ -20,6 +20,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use SmartTill\Core\Filament\Imports\ProductImporter;
+use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
 
 class ProductsTable
@@ -52,6 +53,7 @@ class ProductsTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('name')
+                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable(query: function (Builder $query, string $search) {
                         $query->where(function (Builder $q) use ($search) {
                             $q->where('name', 'like', "%{$search}%")
