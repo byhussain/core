@@ -13,8 +13,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use SmartTill\Core\Filament\Exports\VariationExporter;
 use SmartTill\Core\Filament\Imports\VariationStockImporter;
-use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
+use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
 
 class VariationsTable
 {
@@ -28,8 +28,8 @@ class VariationsTable
                 'product.category.name',
             ])
             ->columns([
+                SyncReferenceColumn::make(),
                 TextColumn::make('description')
-                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable(),
                 TextColumn::make('sku')
                     ->label('SKU')

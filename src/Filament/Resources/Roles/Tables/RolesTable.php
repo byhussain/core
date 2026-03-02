@@ -12,7 +12,7 @@ use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
+use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
 
 class RolesTable
 {
@@ -41,9 +41,9 @@ class RolesTable
                     ->whereIn('id', $visibleRoleIds); // Exclude system roles
             })
             ->columns([
+                SyncReferenceColumn::make(),
                 TextColumn::make('name')
                     ->label('Role Name')
-                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable()
                     ->sortable()
                     ->weight('medium'),

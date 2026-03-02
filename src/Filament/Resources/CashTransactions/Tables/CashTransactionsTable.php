@@ -7,7 +7,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use SmartTill\Core\Enums\CashTransactionType;
-use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
+use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
 
 class CashTransactionsTable
 {
@@ -15,9 +15,9 @@ class CashTransactionsTable
     {
         return $table
             ->columns([
+                SyncReferenceColumn::make(),
                 TextColumn::make('user.name')
                     ->label('User')
-                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('type')

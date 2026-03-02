@@ -17,9 +17,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Services\CashService;
 use SmartTill\Core\Services\UserStoreCashService;
+use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
 
 class UsersTable
 {
@@ -27,20 +27,10 @@ class UsersTable
     {
         return $table
             ->columns([
+                SyncReferenceColumn::make(),
                 TextColumn::make('name')
                     ->searchable(['name', 'phone'])
-                    ->description(function ($record): ?string {
-                        $parts = array_filter([
-                            $record->phone,
-                            RecordIdentityDescription::make($record),
-                        ], fn ($value): bool => filled($value));
-
-                        if (empty($parts)) {
-                            return null;
-                        }
-
-                        return implode(' | ', $parts);
-                    }),
+                    ->description(fn ($record) => $record->phone),
                 TextColumn::make('email')
                     ->searchable(),
                 TextColumn::make('status')

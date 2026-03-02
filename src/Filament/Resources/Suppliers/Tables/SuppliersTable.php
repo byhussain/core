@@ -16,7 +16,7 @@ use Filament\Facades\Filament;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
-use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
+use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
 
 class SuppliersTable
 {
@@ -24,8 +24,8 @@ class SuppliersTable
     {
         return $table
             ->columns([
+                SyncReferenceColumn::make(),
                 TextColumn::make('name')
-                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable(),
                 TextColumn::make('phone')
                     ->searchable(),

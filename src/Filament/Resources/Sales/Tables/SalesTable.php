@@ -23,9 +23,9 @@ use SmartTill\Core\Enums\SalePaymentStatus;
 use SmartTill\Core\Enums\SaleStatus;
 use SmartTill\Core\Filament\Exports\SaleExporter;
 use SmartTill\Core\Filament\Resources\Customers\CustomerResource;
-use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\Customers\RelationManagers\SalesRelationManager;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
+use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
 use SmartTill\Core\Filament\Resources\Sales\SaleResource;
 use SmartTill\Core\Services\SaleTransactionService;
 
@@ -35,10 +35,10 @@ class SalesTable
     {
         return $table
             ->columns([
+                SyncReferenceColumn::make(),
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label('Sale #')
                     ->prefix('#')
-                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable(['reference', 'local_id']),
                 TextColumn::make('customer')
                     ->label('Customer')

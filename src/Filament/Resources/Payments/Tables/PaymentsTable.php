@@ -12,8 +12,8 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use SmartTill\Core\Enums\PaymentMethod;
-use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
+use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
 use SmartTill\Core\Filament\Resources\Payments\PaymentResource;
 use SmartTill\Core\Models\Customer;
 use SmartTill\Core\Models\Supplier;
@@ -24,6 +24,7 @@ class PaymentsTable
     {
         return $table
             ->columns([
+                SyncReferenceColumn::make(),
                 TextColumn::make('payable')
                     ->label('Payable')
                     ->getStateUsing(fn ($record) => $record->payable?->name ?? '—')
@@ -53,7 +54,6 @@ class PaymentsTable
                 TextColumn::make('reference')
                     ->label('Reference')
                     ->prefix('#')
-                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable()
                     ->placeholder('—'),
                 TextColumn::make('note')

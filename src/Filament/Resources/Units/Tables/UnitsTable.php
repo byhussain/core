@@ -20,8 +20,8 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use SmartTill\Core\Filament\Exports\UnitExporter;
 use SmartTill\Core\Filament\Imports\UnitImporter;
-use SmartTill\Core\Filament\Resources\Helpers\RecordIdentityDescription;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
+use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
 
 class UnitsTable
 {
@@ -29,8 +29,8 @@ class UnitsTable
     {
         return $table
             ->columns([
+                SyncReferenceColumn::make(),
                 TextColumn::make('name')
-                    ->description(fn ($record) => RecordIdentityDescription::make($record))
                     ->searchable(),
                 TextColumn::make('scope')
                     ->label('Scope')

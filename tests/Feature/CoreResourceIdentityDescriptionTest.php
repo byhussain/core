@@ -1,6 +1,6 @@
 <?php
 
-it('uses record identity description helper in core resource tables', function (): void {
+it('uses sync reference helper in core resource tables', function (): void {
     $files = [
         'src/Filament/Resources/Sales/Tables/SalesTable.php',
         'src/Filament/Resources/Payments/Tables/PaymentsTable.php',
@@ -21,6 +21,6 @@ it('uses record identity description helper in core resource tables', function (
 
     foreach ($files as $file) {
         $contents = file_get_contents(dirname(__DIR__, 2).DIRECTORY_SEPARATOR.$file);
-        expect($contents)->toContain('RecordIdentityDescription');
+        expect($contents)->toContain('SyncReferenceColumn::make()');
     }
 });
