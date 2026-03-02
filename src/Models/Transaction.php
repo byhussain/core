@@ -10,11 +10,12 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use SmartTill\Core\Casts\PriceCast;
 use SmartTill\Core\Observers\TransactionObserver;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 
 #[ObservedBy(TransactionObserver::class)]
 class Transaction extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasStoreScopedReference, SoftDeletes;
 
     protected $fillable = [
         'store_id',

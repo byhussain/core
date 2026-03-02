@@ -11,11 +11,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use SmartTill\Core\Enums\CustomerStatus;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 
 class Customer extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\CustomerFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, HasStoreScopedReference, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'store_id',

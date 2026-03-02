@@ -8,12 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use SmartTill\Core\Enums\CategoryStatus;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 use SmartTill\Core\Traits\TracksUserActivity;
 
 class Category extends Model
 {
     /** @use HasFactory<\Database\Factories\CategoryFactory> */
-    use HasFactory, SoftDeletes, TracksUserActivity;
+    use HasFactory, HasStoreScopedReference, SoftDeletes, TracksUserActivity;
 
     protected $fillable = [
         'store_id',

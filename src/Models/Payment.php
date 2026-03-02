@@ -9,10 +9,13 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use SmartTill\Core\Casts\PriceCast;
 use SmartTill\Core\Enums\PaymentMethod;
 use SmartTill\Core\Observers\PaymentObserver;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 
 #[ObservedBy([PaymentObserver::class])]
 class Payment extends Model
 {
+    use HasStoreScopedReference;
+
     protected $fillable = [
         'store_id',
         'payable_type',

@@ -13,11 +13,12 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Cache;
 use SmartTill\Core\Casts\PriceCast;
 use SmartTill\Core\Observers\VariationObserver;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 
 #[ObservedBy([VariationObserver::class])]
 class Variation extends Model
 {
-    use HasFactory;
+    use HasFactory, HasStoreScopedReference;
 
     protected $fillable = [
         'product_id',

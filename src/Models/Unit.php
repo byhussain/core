@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use SmartTill\Core\Observers\UnitObserver;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 
 #[ObservedBy([UnitObserver::class])]
 class Unit extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasStoreScopedReference, SoftDeletes;
 
     protected $fillable = [
         'name',

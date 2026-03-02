@@ -15,12 +15,13 @@ use SmartTill\Core\Enums\SalePaymentMethod;
 use SmartTill\Core\Enums\SalePaymentStatus;
 use SmartTill\Core\Enums\SaleStatus;
 use SmartTill\Core\Observers\SaleObserver;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 use SmartTill\Core\Traits\TracksUserActivity;
 
 #[ObservedBy([SaleObserver::class])]
 class Sale extends Model
 {
-    use HasFactory, TracksUserActivity;
+    use HasFactory, HasStoreScopedReference, TracksUserActivity;
 
     protected $fillable = [
         'local_id',

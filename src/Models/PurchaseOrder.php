@@ -11,11 +11,12 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use SmartTill\Core\Casts\PriceCast;
 use SmartTill\Core\Enums\PurchaseOrderStatus;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 
 class PurchaseOrder extends Model
 {
     /** @use HasFactory<\Database\Factories\PurchaseOrderFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasStoreScopedReference, SoftDeletes;
 
     protected $fillable = [
         'store_id',

@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use SmartTill\Core\Enums\BrandStatus;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 use SmartTill\Core\Traits\TracksUserActivity;
 
 class Brand extends Model
 {
-    use HasFactory, SoftDeletes, TracksUserActivity;
+    use HasFactory, HasStoreScopedReference, SoftDeletes, TracksUserActivity;
 
     protected $fillable = ['store_id', 'name', 'description'];
 

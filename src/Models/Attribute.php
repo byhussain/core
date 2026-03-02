@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use SmartTill\Core\Observers\AttributeObserver;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 
 #[ObservedBy([AttributeObserver::class])]
 class Attribute extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasStoreScopedReference, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.

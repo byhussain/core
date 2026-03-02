@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use SmartTill\Core\Enums\SupplierStatus;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 
 class Supplier extends Model
 {
     /** @use HasFactory<\Database\Factories\SupplierFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasStoreScopedReference, SoftDeletes;
 
     protected $fillable = [
         'store_id',

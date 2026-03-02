@@ -11,13 +11,14 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use SmartTill\Core\Enums\ProductStatus;
 use SmartTill\Core\Observers\ProductObserver;
+use SmartTill\Core\Traits\HasStoreScopedReference;
 use SmartTill\Core\Traits\TracksUserActivity;
 
 #[ObservedBy([ProductObserver::class])]
 class Product extends Model
 {
     /** @use HasFactory<\Database\Factories\ProductFactory> */
-    use HasFactory, SoftDeletes, TracksUserActivity;
+    use HasFactory, HasStoreScopedReference, SoftDeletes, TracksUserActivity;
 
     protected $fillable = [
         'store_id',
