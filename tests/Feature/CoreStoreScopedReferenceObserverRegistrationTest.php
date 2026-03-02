@@ -10,9 +10,15 @@ it('registers store scoped reference observer for core store resources', functio
         ->toContain('Category::observe(StoreScopedReferenceObserver::class);')
         ->toContain('Customer::observe(StoreScopedReferenceObserver::class);')
         ->toContain('Product::observe(StoreScopedReferenceObserver::class);')
+        ->toContain('ProductAttribute::observe(StoreScopedReferenceObserver::class);')
         ->toContain('PurchaseOrder::observe(StoreScopedReferenceObserver::class);')
+        ->toContain('PurchaseOrderProduct::observe(StoreScopedReferenceObserver::class);')
+        ->toContain('SaleVariation::observe(StoreScopedReferenceObserver::class);')
+        ->toContain('SalePreparableItem::observe(StoreScopedReferenceObserver::class);')
+        ->toContain('Stock::observe(StoreScopedReferenceObserver::class);')
         ->toContain('Supplier::observe(StoreScopedReferenceObserver::class);')
         ->toContain('Unit::observe(StoreScopedReferenceObserver::class);')
-        ->toContain('Variation::observe(StoreScopedReferenceObserver::class);');
+        ->toContain('UnitDimension::observe(StoreScopedReferenceObserver::class);')
+        ->toContain('Variation::observe(StoreScopedReferenceObserver::class);')
+        ->toContain('StoreSetting::observe(StoreScopedReferenceObserver::class);');
 });
-

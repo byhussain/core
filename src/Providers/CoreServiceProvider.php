@@ -19,14 +19,19 @@ use SmartTill\Core\Models\Currency;
 use SmartTill\Core\Models\Customer;
 use SmartTill\Core\Models\Payment;
 use SmartTill\Core\Models\Product;
+use SmartTill\Core\Models\ProductAttribute;
 use SmartTill\Core\Models\PurchaseOrder;
+use SmartTill\Core\Models\PurchaseOrderProduct;
 use SmartTill\Core\Models\Sale;
+use SmartTill\Core\Models\SalePreparableItem;
+use SmartTill\Core\Models\SaleVariation;
 use SmartTill\Core\Models\Stock;
 use SmartTill\Core\Models\StoreSetting;
 use SmartTill\Core\Models\Supplier;
 use SmartTill\Core\Models\Timezone;
 use SmartTill\Core\Models\Transaction;
 use SmartTill\Core\Models\Unit;
+use SmartTill\Core\Models\UnitDimension;
 use SmartTill\Core\Models\Variation;
 use SmartTill\Core\Observers\AttributeObserver;
 use SmartTill\Core\Observers\PaymentObserver;
@@ -81,10 +86,17 @@ class CoreServiceProvider extends ServiceProvider
         Category::observe(StoreScopedReferenceObserver::class);
         Customer::observe(StoreScopedReferenceObserver::class);
         Product::observe(StoreScopedReferenceObserver::class);
+        ProductAttribute::observe(StoreScopedReferenceObserver::class);
         PurchaseOrder::observe(StoreScopedReferenceObserver::class);
+        PurchaseOrderProduct::observe(StoreScopedReferenceObserver::class);
+        SaleVariation::observe(StoreScopedReferenceObserver::class);
+        SalePreparableItem::observe(StoreScopedReferenceObserver::class);
+        Stock::observe(StoreScopedReferenceObserver::class);
         Supplier::observe(StoreScopedReferenceObserver::class);
         Unit::observe(StoreScopedReferenceObserver::class);
+        UnitDimension::observe(StoreScopedReferenceObserver::class);
         Variation::observe(StoreScopedReferenceObserver::class);
+        StoreSetting::observe(StoreScopedReferenceObserver::class);
 
         if (class_exists(\App\Models\Store::class) && ! class_exists(\App\Observers\StoreObserver::class)) {
             \App\Models\Store::observe(\SmartTill\Core\Observers\StoreObserver::class);
