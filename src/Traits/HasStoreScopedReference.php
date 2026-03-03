@@ -40,7 +40,7 @@ trait HasStoreScopedReference
         }
 
         $reference = trim((string) ($model->getAttribute('reference') ?? ''));
-        if ($persisted && $reference !== '') {
+        if ($reference !== '') {
             return;
         }
 

@@ -12,21 +12,6 @@ class SaleObserver
 {
     public function creating(Sale $sale): void
     {
-        // Only set reference if not already set
-        if (! empty($sale->reference)) {
-            return;
-        }
-        $storeId = $sale->store_id;
-
-        // Use safe database operation to count existing sales
-        try {
-            $count = Sale::where('store_id', $storeId)->count();
-            $sale->reference = $count + 1;
-        } catch (\Exception $e) {
-            // Fallback to timestamp-based reference if database fails
-            $sale->reference = 'SALE-'.time();
-        }
-
         if ($sale->payment_status === SalePaymentStatus::Paid) {
             $sale->paid_at = now();
         }

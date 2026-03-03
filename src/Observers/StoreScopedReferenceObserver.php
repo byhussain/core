@@ -66,7 +66,7 @@ class StoreScopedReferenceObserver
             return;
         }
 
-        if ($persisted && $reference !== '') {
+        if ($reference !== '') {
             return;
         }
 
