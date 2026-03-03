@@ -70,8 +70,12 @@ class StoreScopedReferenceObserver
             return;
         }
 
-        $nextReference = (int) DB::table($table)
-            ->where('store_id', $storeId)
+        $query = $this->buildStoreScopedReferenceQuery($table, $storeId);
+        if ($query === null) {
+            return;
+        }
+
+        $nextReference = (int) $query
             ->whereNotNull('reference')
             ->pluck('reference')
             ->map(static fn ($value): int => (int) $value)
@@ -90,5 +94,36 @@ class StoreScopedReferenceObserver
         }
 
         $model->setAttribute('reference', (string) $nextReference);
+    }
+
+    private function buildStoreScopedReferenceQuery(string $table, int $storeId): ?\Illuminate\Database\Query\Builder
+    {
+        if (Schema::hasColumn($table, 'store_id')) {
+            return DB::table($table)->where('store_id', $storeId);
+        }
+
+        return match ($table) {
+            'product_attributes' => DB::table($table)->whereIn('product_id', function ($query) use ($storeId): void {
+                $query->select('id')
+                    ->from('products')
+                    ->where('store_id', $storeId);
+            }),
+            'purchase_order_products' => DB::table($table)->whereIn('purchase_order_id', function ($query) use ($storeId): void {
+                $query->select('id')
+                    ->from('purchase_orders')
+                    ->where('store_id', $storeId);
+            }),
+            'sale_variation', 'sale_preparable_items' => DB::table($table)->whereIn('sale_id', function ($query) use ($storeId): void {
+                $query->select('id')
+                    ->from('sales')
+                    ->where('store_id', $storeId);
+            }),
+            'stocks' => DB::table($table)->whereIn('variation_id', function ($query) use ($storeId): void {
+                $query->select('id')
+                    ->from('variations')
+                    ->where('store_id', $storeId);
+            }),
+            default => null,
+        };
     }
 }
