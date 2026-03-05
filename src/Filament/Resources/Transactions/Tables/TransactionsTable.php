@@ -17,6 +17,16 @@ use SmartTill\Core\Models\Sale;
 
 class TransactionsTable
 {
+    private const PURCHASE_ORDER_REFERENCEABLE_TYPES = [
+        PurchaseOrder::class,
+        'App\\Models\\PurchaseOrder',
+    ];
+
+    private const SALE_REFERENCEABLE_TYPES = [
+        Sale::class,
+        'App\\Models\\Sale',
+    ];
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -34,9 +44,11 @@ class TransactionsTable
                     ->prefix('#')
                     ->formatStateUsing(fn ($record) => $record->referenceable?->reference ?? $record->referenceable?->id)
                     ->url(function ($record) {
-                        if ($record->referenceable_type === PurchaseOrder::class && $record->referenceable) {
+                        if (in_array($record->referenceable_type, self::PURCHASE_ORDER_REFERENCEABLE_TYPES, true) && $record->referenceable) {
                             return PurchaseOrderResource::getUrl('view', ['record' => $record->referenceable]);
-                        } elseif ($record->referenceable_type === Sale::class && $record->referenceable) {
+                        }
+
+                        if (in_array($record->referenceable_type, self::SALE_REFERENCEABLE_TYPES, true) && $record->referenceable) {
                             return SaleResource::getUrl('view', ['record' => $record->referenceable]);
                         }
 
