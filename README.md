@@ -1,36 +1,97 @@
 # smart-till/core
 
-Core Filament modules for SMART TiLL.
+`smart-till/core` is the shared business/domain layer for SMART TiLL Server and SMART TiLL POS.
 
-This package contains the extracted module code (resources, models, services, enums, observers, migrations) and installs with:
+This package centralizes:
 
-```bash
-php artisan core:install --no-interaction
+- Filament Resources, Pages, Relation Managers, and Widgets
+- Core Eloquent Models
+- Domain Enums
+- Domain Observers
+- Shared Services (geo bootstrap, permissions bootstrap, settings bootstrap, units bootstrap)
+- Shared routes/views used by both server and POS
+- Shared schema migrations for core tables/columns
+
+The goal is one implementation for both projects so behavior stays aligned.
+
+## What This Package Actually Does
+
+When installed in a host Laravel app, this package:
+
+1. Registers `SmartTill\Core\Providers\CoreServiceProvider`
+2. Loads package migrations from `database/migrations` inside this package
+3. Loads package views (`resources/views`)
+4. Loads package routes from `routes/web.php` (only if `public.receipt` route is not already registered)
+5. Registers Livewire component: `product-search`
+6. Registers morph-map compatibility for core/app aliases
+7. Attaches core observers to core models
+8. Provides installer commands to bootstrap required data
+
+## Compatibility Matrix
+
+- PHP: `^8.2`
+- Laravel: `^12.0`
+- Filament: `^5.0`
+- Livewire: `^4.0`
+
+From package `composer.json`:
+
+- `filament/filament`
+- `laravel/framework`
+- `laravel/sanctum`
+- `league/iso3166`
+- `livewire/livewire`
+- `pragmarx/countries`
+
+## Host App Requirements
+
+Before installation:
+
+1. Host app has `App\Models\Store`
+2. `stores` table exists
+3. Host app uses Filament tenancy with `Store` tenant model
+4. Host app has a `Store` panel that discovers package resources/pages
+
+If these are missing, install command will fail fast with explicit errors.
+
+## Installation
+
+## Option A: VCS (Recommended for staging/production)
+
+In host app `composer.json`:
+
+```json
+{
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/SMART-DADDY/core"
+    }
+  ],
+  "require": {
+    "smart-till/core": "^1.0"
+  }
+}
 ```
 
-## Requirements
+Then:
 
-Before installing this package in a host Laravel app:
+```bash
+composer update smart-till/core --with-all-dependencies --no-interaction
+php artisan core:install --no-interaction
+php artisan optimize:clear
+```
 
-1. Laravel 12 and Filament v5 are installed.
-2. `App\Models\Store` exists.
-3. `stores` table exists in database.
-4. Filament tenant setup in host app uses `Store`.
+## Option B: Local Path (development only)
 
-## Install Option A: Local Path (same machine)
-
-Use this when your package source is local (for example during development).
-
-### 1) Update host project `composer.json`
-
-Example for host project at `/Users/pasha/PhpstormProjects/SMART-TiLL-POS`:
+In host app `composer.json`:
 
 ```json
 {
   "repositories": [
     {
       "type": "path",
-      "url": "../SMART-TiLL/packages/smart-till/core",
+      "url": "../core",
       "options": {
         "symlink": true
       }
@@ -42,169 +103,204 @@ Example for host project at `/Users/pasha/PhpstormProjects/SMART-TiLL-POS`:
 }
 ```
 
-### 2) Install package
+Then:
 
 ```bash
-cd /Users/pasha/PhpstormProjects/SMART-TiLL-POS
 composer update smart-till/core --no-interaction
-```
-
-### 3) Run installer
-
-```bash
 php artisan core:install --no-interaction
 ```
 
-### 4) Verify command exists
+## Installer Commands
 
-```bash
-php artisan list | rg core:install
+## `php artisan core:install`
+
+Runs on default DB connection and does:
+
+1. Validates `App\Models\Store`
+2. Validates `stores` table exists
+3. Runs `php artisan migrate --force --no-interaction`
+4. Bootstraps countries/currencies/timezones
+5. Bootstraps store settings defaults
+6. Bootstraps universal units
+7. Bootstraps core permissions and super-admin role mapping
+
+## `php artisan native:core:install`
+
+For NativePHP sqlite runtime:
+
+1. Validates `App\Models\Store`
+2. Validates `native:migrate` command exists
+3. Runs `php artisan native:migrate --force --no-interaction`
+4. Validates `stores` exists on `nativephp` connection
+5. Runs same bootstrap services on `nativephp` connection
+
+## Host Panel Wiring (Required)
+
+Your Filament Store panel must discover package resources/pages.
+
+Example pattern:
+
+```php
+use ReflectionClass;
+use SmartTill\Core\Providers\CoreServiceProvider;
+use SmartTill\Core\Http\Middleware\SetTenantTimezone as CoreSetTenantTimezone;
+
+$coreSrcPath = dirname((new ReflectionClass(CoreServiceProvider::class))->getFileName(), 2);
+
+->discoverResources(in: $coreSrcPath.'/Filament/Resources', for: 'SmartTill\\Core\\Filament\\Resources')
+->discoverPages(in: $coreSrcPath.'/Filament/Pages', for: 'SmartTill\\Core\\Filament\\Pages')
+->tenantMiddleware([CoreSetTenantTimezone::class], isPersistent: true)
 ```
 
-## Install Option B: GitHub repo (VCS)
+Without tenant timezone middleware, `created_at/updated_at` can render in wrong timezone.
 
-Use this when package is pushed to:
+## Config
 
-`https://github.com/SMART-DADDY/core`
+The package reads:
 
-### 1) Ensure package repo metadata
+- `config('smart_till.reference_on_create', true)`
 
-In package repo `composer.json`:
+If true:
+
+- Store-scoped reference values are auto-assigned for resources having `reference` columns.
+
+Recommended host config file:
+
+```php
+<?php
+
+return [
+    'reference_on_create' => true,
+];
+```
+
+Save as: `config/smart_till.php`
+
+## Migrations Included In This Package
+
+Current package migrations:
+
+1. `2026_02_25_000002_create_core_tables.php`
+2. `2026_02_26_000003_add_store_user_cash_columns.php`
+3. `2026_03_02_000010_add_local_id_to_sync_tables.php`
+4. `2026_03_02_104300_add_reference_to_sync_tables.php`
+
+These migrations are idempotent-style guarded with `Schema::hasTable/hasColumn` checks where appropriate.
+
+## Important: Existing Projects With Legacy Data
+
+This package ships foundational schema. Project-specific data correction/backfill migrations may exist in host app (for example polymorphic type normalization and reference backfills).
+
+If your host app already has production data, you should:
+
+1. Run package install/migrations
+2. Run host app custom backfill/fix migrations
+3. Verify key datasets (transactions, payments, references, dashboard stats)
+
+Do not assume package migration alone backfills historical data.
+
+## Morph Map / Polymorphic Compatibility
+
+Core provider registers compatibility map for both app and core class names:
+
+- `App\Models\Customer` <-> `SmartTill\Core\Models\Customer`
+- `App\Models\Supplier` <-> `SmartTill\Core\Models\Supplier`
+- `App\Models\Sale` <-> `SmartTill\Core\Models\Sale`
+- `App\Models\PurchaseOrder` <-> `SmartTill\Core\Models\PurchaseOrder`
+- `App\Models\Payment` <-> `SmartTill\Core\Models\Payment`
+- `App\Models\Transaction` <-> `SmartTill\Core\Models\Transaction`
+
+This is required because historical records can contain either alias.
+
+## Observer Behavior
+
+Core provider wires domain observers, including:
+
+- Product/variation/stock/sale/payment/transaction lifecycle observers
+- Store-scoped reference observer across multiple entities
+
+Because this is centralized in package boot, behavior is shared between Server and POS when both consume the same core version.
+
+## Versioning / Release Policy
+
+For production:
+
+1. Tag this repository (`vX.Y.Z`)
+2. Pin host apps to that tag/range
+3. Avoid `dev-main` in production
+
+Recommended:
 
 ```json
-{
-  "name": "smart-till/core",
-  "autoload": {
-    "psr-4": {
-      "SmartTill\\Core\\": "src/"
-    }
-  }
-}
+"smart-till/core": "^1.0"
 ```
 
-### 2) Push code and create tag (recommended)
-
-From package repo:
-
-```bash
-git add .
-git commit -m "Initial package release"
-git push origin main
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-### 3) Add VCS repository in host app
-
-In host project `composer.json`:
-
-```json
-{
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/SMART-DADDY/core"
-    }
-  ],
-  "require": {
-    "smart-till/core": "^0.1"
-  }
-}
-```
-
-If no tag exists yet:
+Not recommended for production:
 
 ```json
 "smart-till/core": "dev-main"
 ```
 
-If stability blocks install, use:
+## Upgrade Procedure
 
-```json
-"smart-till/core": "dev-main@dev"
-```
+1. Update package version in host app
+2. `composer update smart-till/core --with-all-dependencies --no-interaction`
+3. `php artisan core:install --no-interaction`
+4. `php artisan optimize:clear`
+5. Run smoke tests:
+   - Sales create/print
+   - Purchase order flows
+   - Payment flows
+   - Customer/supplier transaction links
+   - Dashboard widgets
+   - Tenant timezone rendering
 
-### 4) Install and run setup
+## Testing This Package
 
-```bash
-composer update smart-till/core --no-interaction
-php artisan core:install --no-interaction
-```
-
-## Private GitHub repository setup
-
-If `SMART-DADDY/core` is private, configure Composer auth:
-
-```bash
-composer config --global github-oauth.github.com <GITHUB_TOKEN>
-```
-
-Then run:
+From package root:
 
 ```bash
-composer update smart-till/core --no-interaction
+./vendor/bin/pest
 ```
 
-## Upgrade package in host app
-
-### With tags
+Or single file:
 
 ```bash
-composer update smart-till/core --with-all-dependencies --no-interaction
-php artisan core:install --no-interaction
+./vendor/bin/pest tests/Feature/CorePaymentPrintRouteGuardTest.php
 ```
-
-### With dev branch
-
-```bash
-composer update smart-till/core --no-interaction
-php artisan core:install --no-interaction
-```
-
-## What `core:install` does
-
-`core:install`:
-
-1. Verifies `App\Models\Store` exists.
-2. Verifies `stores` table exists.
-3. Runs package migrations.
-4. Exits with clear error when prerequisites are missing.
 
 ## Troubleshooting
 
-### Error: `Missing required model: App\Models\Store`
+## `Missing required model: App\Models\Store`
 
-Create the model in host app:
+Create host model:
 
 ```bash
 php artisan make:model Store
 ```
 
-### Error: `Missing required table: stores`
+## `Missing required table: stores`
 
-Run host app migrations that create `stores` table, then rerun installer.
+Run host migrations that create `stores`, then rerun installer.
 
-### Composer cannot find package
+## Package installed but resources/pages not visible
 
-1. Confirm `name` is exactly `smart-till/core`.
-2. Confirm repository URL is correct.
-3. For tags, run `composer clear-cache` and retry.
-
-### Install works but Filament resources do not appear
-
-1. Ensure host panel discovers package resources (or provider is auto-discovered).
-2. Clear caches:
+1. Ensure panel `discoverResources/discoverPages` includes core namespace/path
+2. Clear cache:
 
 ```bash
 php artisan optimize:clear
 ```
 
-## Quick Start (VCS flow)
+## Wrong timezone display in Filament dates
 
-```bash
-# In host app
-composer update smart-till/core --no-interaction
-php artisan core:install --no-interaction
-php artisan optimize:clear
-```
+1. Ensure tenant middleware includes `SetTenantTimezone`
+2. Ensure store has valid `timezone_id` and related timezone row
+3. Ensure date columns call `->timezone(fn () => Filament::getTenant()?->timezone?->name ?? 'UTC')`
 
+## Notes For Contributors
+
+- Keep business logic in `core` when shared between Server and POS.
+- Keep host-app-only logic in host app.
+- Add tests for behavior compatibility, especially around morph aliases and route/url generation.
+- Avoid introducing breaking changes without migration strategy and release notes.
