@@ -94,6 +94,15 @@ class TransactionsRelationManager extends RelationManager
                     ])
                     ->action(function (array $data, RelationManager $livewire) {
                         $customer = $livewire->getOwnerRecord();
+                        if (! array_key_exists('amount', $data) || ! array_key_exists('payment_method', $data)) {
+                            Notification::make()
+                                ->title('Missing payment details')
+                                ->body('Please provide amount and payment method.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
 
                         try {
                             app(PaymentService::class)->recordPayment(

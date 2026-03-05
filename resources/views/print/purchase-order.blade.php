@@ -317,10 +317,10 @@
                         $reqSupplierPercentage = (float) ($pivot->requested_supplier_percentage ?? 0);
                         $reqSupplierIsPercentage = $pivot->requested_supplier_is_percentage;
                         $reqSupplierPrice = (float) ($pivot->requested_supplier_price ?? 0);
-                        $reqLineTotal = $reqQty * $reqUnitPrice;
+                        $reqLineUnitTotal = $reqQty * $reqUnitPrice;
                         $reqLineSupplierTotal = $reqQty * $reqSupplierPrice;
                         $requestedTotalQty += $reqQty;
-                        $requestedSubtotal += $reqLineTotal;
+                        $requestedSubtotal += $reqLineUnitTotal;
                         $requestedSupplierTotal += $reqLineSupplierTotal;
                         $requestedSymbol = $pivot->requestedUnit?->symbol ?? $variation->unit?->symbol;
                         
@@ -330,10 +330,10 @@
                         $recSupplierPercentage = (float) ($pivot->received_supplier_percentage ?? 0);
                         $recSupplierIsPercentage = $pivot->received_supplier_is_percentage;
                         $recSupplierPrice = (float) ($pivot->received_supplier_price ?? 0);
-                        $recLineTotal = $recQty * $recUnitPrice;
+                        $recLineUnitTotal = $recQty * $recUnitPrice;
                         $recLineSupplierTotal = $recQty * $recSupplierPrice;
                         $receivedTotalQty += $recQty;
-                        $receivedSubtotal += $recLineTotal;
+                        $receivedSubtotal += $recLineUnitTotal;
                         $receivedSupplierTotal += $recLineSupplierTotal;
                         $receivedSymbol = $pivot->receivedUnit?->symbol ?? $variation->unit?->symbol;
                     @endphp
@@ -347,13 +347,13 @@
                         <td class="px-1 py-0.5 text-center align-top text-slate-700 text-xs">{{ $fmt($reqUnitPrice) }} {{ $currencyCode }}</td>
                         <td class="px-1 py-0.5 text-center align-top text-slate-600 text-xs">{{ $reqSupplierIsPercentage === false ? '—' : $fmtPercent($reqSupplierPercentage).'%' }}</td>
                         <td class="px-1 py-0.5 text-right align-top text-slate-700 text-xs">{{ $fmt($reqSupplierPrice) }} {{ $currencyCode }}</td>
-                        <td class="px-1 py-0.5 text-right align-top font-semibold text-slate-900 text-xs">{{ $fmtNoRound($reqLineTotal) }} {{ $currencyCode }}</td>
+                        <td class="px-1 py-0.5 text-right align-top font-semibold text-slate-900 text-xs">{{ $fmtNoRound($reqLineSupplierTotal) }} {{ $currencyCode }}</td>
                         <!-- Received Columns -->
                         <td class="px-1 py-0.5 text-right align-top font-medium text-slate-800 text-xs {{ $recQty > 0 ? 'text-green-600' : '' }}">{{ $fmt($recQty) }}{{ $receivedSymbol ? ' '.$receivedSymbol : '' }}</td>
                         <td class="px-1 py-0.5 text-center align-top text-slate-700 text-xs {{ $recUnitPrice > 0 ? 'text-green-600' : '' }}">{{ $recUnitPrice > 0 ? $fmt($recUnitPrice).' '.$currencyCode : '—' }}</td>
                         <td class="px-1 py-0.5 text-center align-top text-slate-600 text-xs {{ $recSupplierPercentage > 0 ? 'text-green-600' : '' }}">{{ $recSupplierIsPercentage === false ? '—' : ($recSupplierPercentage > 0 ? $fmtPercent($recSupplierPercentage).'%' : '—') }}</td>
                         <td class="px-1 py-0.5 text-right align-top text-slate-700 text-xs {{ $recSupplierPrice > 0 ? 'text-green-600' : '' }}">{{ $recSupplierPrice > 0 ? $fmt($recSupplierPrice).' '.$currencyCode : '—' }}</td>
-                        <td class="px-1 py-0.5 text-right align-top font-semibold text-slate-900 text-xs {{ $recLineTotal > 0 ? 'text-green-600' : '' }}">{{ $recLineTotal > 0 ? $fmtNoRound($recLineTotal).' '.$currencyCode : '—' }}</td>
+                        <td class="px-1 py-0.5 text-right align-top font-semibold text-slate-900 text-xs {{ $recLineSupplierTotal > 0 ? 'text-green-600' : '' }}">{{ $recLineSupplierTotal > 0 ? $fmtNoRound($recLineSupplierTotal).' '.$currencyCode : '—' }}</td>
                     </tr>
                 @endforeach
             </tbody>

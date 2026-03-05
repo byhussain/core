@@ -174,7 +174,7 @@ class PurchaseOrderForm
                                 $isTaxEnabled = $store?->tax_enabled ?? false;
 
                                 $columns = [
-                                    Repeater\TableColumn::make('Product')->width($isTaxEnabled ? '45%' : '55%'),
+                                    Repeater\TableColumn::make('Product')->width($isTaxEnabled ? '35%' : '45%'),
                                     Repeater\TableColumn::make('Qty')->width('10%'),
                                     Repeater\TableColumn::make('Unit')->width('15%'),
                                     Repeater\TableColumn::make('Price')->width('10%'),
@@ -185,6 +185,7 @@ class PurchaseOrderForm
                                 }
 
                                 $columns[] = Repeater\TableColumn::make('Cost')->width('10%');
+                                $columns[] = Repeater\TableColumn::make('Totals')->width('10%');
 
                                 return $columns;
                             })
@@ -253,6 +254,7 @@ class PurchaseOrderForm
                                                 $set('requested_quantity', $rounded);
                                             }
 
+                                            self::updateRequestedLineTotal($get, $set);
                                             self::refreshRepeater($get, $set);
                                         }),
                                     Select::make('requested_unit_id')
@@ -349,6 +351,7 @@ class PurchaseOrderForm
                                                 $supplierPrice = $supplier['supplier_price'] ?? null;
                                             }
 
+                                            self::updateRequestedLineTotal($get, $set);
                                             self::refreshRepeater($get, $set);
                                         }),
 
@@ -437,6 +440,7 @@ class PurchaseOrderForm
 
                                             $supplier = self::syncSupplierFields($get, $set);
 
+                                            self::updateRequestedLineTotal($get, $set);
                                             self::refreshRepeater($get, $set);
                                         }),
                                 ];
@@ -652,7 +656,20 @@ class PurchaseOrderForm
 
                                         $supplier = self::syncSupplierFields($get, $set, $state);
 
+                                        self::updateRequestedLineTotal($get, $set);
                                         self::refreshRepeater($get, $set);
+                                    });
+
+                                $schema[] = TextInput::make('requested_line_total')
+                                    ->label('Totals')
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->numeric()
+                                    ->extraInputAttributes([
+                                        'class' => 'text-xs py-0.5 px-1.5 h-7',
+                                    ])
+                                    ->afterStateHydrated(function ($state, $set, $get): void {
+                                        self::updateRequestedLineTotal($get, $set);
                                     });
 
                                 return $schema;
@@ -1052,6 +1069,33 @@ class PurchaseOrderForm
             'supplier_price' => $price,
             'supplier_percentage' => $unitPrice > 0 ? round($percentage, 6) : null,
         ];
+    }
+
+    private static function updateRequestedLineTotal(callable $get, callable $set): void
+    {
+        $quantity = (float) ($get('requested_quantity') ?? 0);
+        $supplierPrice = $get('requested_supplier_price');
+
+        if (! is_numeric($supplierPrice)) {
+            $supplierPrice = 0.0;
+            $rawInput = $get('requested_supplier_input');
+            $rawInput = is_string($rawInput) ? trim($rawInput) : $rawInput;
+
+            if (is_numeric($rawInput)) {
+                $supplierPrice = (float) $rawInput;
+            } elseif (is_string($rawInput) && str_ends_with($rawInput, '%')) {
+                $unitPrice = (float) ($get('requested_unit_price') ?? 0);
+                $numericValue = (float) str_replace('%', '', $rawInput);
+                $supplierPrice = $unitPrice - ($unitPrice * ($numericValue / 100));
+            }
+        }
+
+        $store = Filament::getTenant();
+        $currency = $store?->currency;
+        $decimalPlaces = $currency->decimal_places ?? 2;
+        $lineTotal = $quantity * (float) $supplierPrice;
+
+        $set('requested_line_total', round($lineTotal, $decimalPlaces));
     }
 
     private static function refreshRepeater(callable $get, callable $set): void
