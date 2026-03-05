@@ -21,6 +21,7 @@ use Filament\Tables\Table;
 use Illuminate\Support\Facades\Route;
 use SmartTill\Core\Enums\PurchaseOrderStatus;
 use SmartTill\Core\Filament\Resources\Suppliers\RelationManagers\PurchaseOrdersRelationManager;
+use SmartTill\Core\Filament\Resources\Suppliers\SupplierResource;
 use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
 
 class PurchaseOrdersTable
@@ -36,6 +37,8 @@ class PurchaseOrdersTable
                     ->searchable(),
                 TextColumn::make('supplier.name')
                     ->label('Supplier')
+                    ->color('primary')
+                    ->url(fn ($record) => $record->supplier ? SupplierResource::getUrl('view', ['record' => $record->supplier]) : null)
                     ->sortable()
                     ->searchable()
                     ->hiddenOn(PurchaseOrdersRelationManager::class),
