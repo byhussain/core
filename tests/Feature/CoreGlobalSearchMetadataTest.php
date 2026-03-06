@@ -45,3 +45,10 @@ it('includes reference and local id in global search attributes where applicable
     }
 });
 
+it('does not include non-existent purchase order columns in global search attributes', function (): void {
+    $contents = file_get_contents(dirname(__DIR__, 2).'/src/Filament/Resources/PurchaseOrders/PurchaseOrderResource.php');
+
+    expect($contents)
+        ->toContain("return ['reference', 'local_id', 'supplier.name', 'supplier.phone'];")
+        ->not->toContain("'note'");
+});

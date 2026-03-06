@@ -84,7 +84,7 @@ class PurchaseOrderResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['reference', 'local_id', 'supplier.name', 'supplier.phone', 'note'];
+        return ['reference', 'local_id', 'supplier.name', 'supplier.phone'];
     }
 
     public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
