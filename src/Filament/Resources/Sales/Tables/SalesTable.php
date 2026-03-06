@@ -42,7 +42,7 @@ class SalesTable
                     ->description(fn ($record) => $record->customer?->phone ?: null)
                     ->searchable(
                         query: function (Builder $query, string $search) {
-                            $query->orWhereHas('customer', function ($q) use ($search) {
+                            $query->whereHas('customer', function ($q) use ($search) {
                                 $q->where('name', 'like', "%$search%")
                                     ->orWhere('phone', 'like', "%$search%");
                             });

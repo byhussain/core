@@ -9,6 +9,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
 use SmartTill\Core\Filament\Resources\Variations\Pages\EditVariation;
 use SmartTill\Core\Filament\Resources\Variations\Pages\ListVariations;
@@ -81,6 +82,25 @@ class VariationResource extends Resource
     public static function getNavigationBadgeColor(): string|array|null
     {
         return 'success';
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['reference', 'local_id', 'description', 'sku', 'product.name'];
+    }
+
+    public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
+    {
+        return (string) ($record->description ?: ($record->sku ?: "Variation #{$record->id}"));
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Reference' => $record->reference ?: ($record->local_id ?: "#{$record->id}"),
+            'SKU' => $record->sku,
+            'Product' => $record->product?->name,
+        ];
     }
 
     public static function form(Schema $schema): Schema

@@ -9,6 +9,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use SmartTill\Core\Filament\Resources\Attributes\Pages\CreateAttribute;
 use SmartTill\Core\Filament\Resources\Attributes\Pages\EditAttribute;
@@ -74,6 +75,23 @@ class AttributeResource extends Resource
     public static function canForceDelete($record): bool
     {
         return ResourceCanAccessHelper::check('Force Delete Attributes');
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['reference', 'local_id', 'name'];
+    }
+
+    public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
+    {
+        return $record->name;
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Reference' => $record->reference ?: ($record->local_id ?: "#{$record->id}"),
+        ];
     }
 
     public static function form(Schema $schema): Schema

@@ -80,7 +80,7 @@ class ProductResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['name', 'description'];
+        return ['reference', 'local_id', 'name', 'description', 'brand.name', 'category.name'];
     }
 
     public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
@@ -91,7 +91,10 @@ class ProductResource extends Resource
     public static function getGlobalSearchResultDetails(Model $record): array
     {
         return [
-            'Description' => $record->description,
+            'Reference' => $record->reference ?: ($record->local_id ?: "#{$record->id}"),
+            'Brand' => $record->brand?->name,
+            'Category' => $record->category?->name,
+            'Status' => $record->status,
         ];
     }
 

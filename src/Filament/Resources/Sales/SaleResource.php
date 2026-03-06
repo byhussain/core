@@ -59,19 +59,21 @@ class SaleResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['reference', 'customer.name', 'customer.phone'];
+        return ['reference', 'local_id', 'customer.name', 'customer.phone', 'note'];
     }
 
     public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
     {
-        return "#$record->id";
+        return 'Sale #'.($record->reference ?: ($record->local_id ?: $record->id));
     }
 
     public static function getGlobalSearchResultDetails(Model $record): array
     {
         return [
+            'Customer' => $record->customer?->name ?? 'Guest',
             'Total' => $record->total,
-            'Status' => $record->payment_status->name,
+            'Payment' => $record->payment_status?->value ?? null,
+            'Status' => $record->status?->value ?? null,
         ];
     }
 

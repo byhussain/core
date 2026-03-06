@@ -81,7 +81,7 @@ class CustomerResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['name', 'phone'];
+        return ['reference', 'local_id', 'name', 'phone', 'email'];
     }
 
     public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
@@ -92,7 +92,10 @@ class CustomerResource extends Resource
     public static function getGlobalSearchResultDetails(Model $record): array
     {
         return [
+            'Reference' => $record->reference ?: ($record->local_id ?: "#{$record->id}"),
             'Phone' => $record->phone,
+            'Email' => $record->email,
+            'Status' => $record->status,
         ];
     }
 

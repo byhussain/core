@@ -55,9 +55,10 @@ class PaymentsTable
                         return null;
                     })
                     ->searchable(query: function (Builder $query, string $search) {
-                        $query->whereHasMorph('payable', [Customer::class, Supplier::class], function (Builder $q) use ($search) {
+                        $query->whereHasMorph('payable', array_merge(self::CUSTOMER_PAYABLE_TYPES, self::SUPPLIER_PAYABLE_TYPES), function (Builder $q) use ($search) {
                             $q->where('name', 'like', "%{$search}%")
-                                ->orWhere('phone', 'like', "%{$search}%");
+                                ->orWhere('phone', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
                         });
                     }),
                 TextColumn::make('payment_method')

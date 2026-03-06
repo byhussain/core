@@ -80,7 +80,7 @@ class CategoryResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['name', 'description'];
+        return ['reference', 'local_id', 'name', 'description'];
     }
 
     public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
@@ -91,6 +91,7 @@ class CategoryResource extends Resource
     public static function getGlobalSearchResultDetails(Model $record): array
     {
         return [
+            'Reference' => $record->reference ?: ($record->local_id ?: "#{$record->id}"),
             'Description' => $record->description,
         ];
     }

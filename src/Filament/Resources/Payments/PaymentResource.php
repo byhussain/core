@@ -7,6 +7,7 @@ use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Model;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
 use SmartTill\Core\Filament\Resources\Payments\Pages\ListPayments;
 use SmartTill\Core\Filament\Resources\Payments\Tables\PaymentsTable;
@@ -66,6 +67,25 @@ class PaymentResource extends Resource
     public static function canForceDelete($record): bool
     {
         return false;
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['reference', 'note'];
+    }
+
+    public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
+    {
+        return 'Payment #'.($record->reference ?: ($record->local_id ?: $record->id));
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Payable' => $record->payable?->name,
+            'Amount' => $record->amount,
+            'Method' => $record->payment_method?->value ?? null,
+        ];
     }
 
     public static function table(Table $table): Table

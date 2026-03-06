@@ -8,5 +8,8 @@ it('configures sync reference column to fallback to local id before server id is
         ->toContain("->state(fn (\$record): ?string => filled(\$record->reference ?? null)")
         ->toContain(": (filled(\$record->server_id ?? null)")
         ->toContain(": (filled(\$record->local_id ?? null) ? (string) \$record->local_id : null)))")
-        ->toContain("->description(fn (\$record): ?string => filled(\$record->local_id ?? null)");
+        ->toContain("->description(fn (\$record): ?string => filled(\$record->local_id ?? null)")
+        ->toContain('->searchable(query: function (Builder $query, string $search): Builder')
+        ->toContain('resolveSearchableColumns($query->getModel())')
+        ->toContain('Schema::connection($connectionName)->hasColumn($table, $column)');
 });

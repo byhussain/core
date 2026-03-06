@@ -82,7 +82,7 @@ class UnitResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['name', 'symbol'];
+        return ['reference', 'local_id', 'name', 'symbol'];
     }
 
     public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
@@ -93,7 +93,9 @@ class UnitResource extends Resource
     public static function getGlobalSearchResultDetails(Model $record): array
     {
         return [
+            'Reference' => $record->reference ?: ($record->local_id ?: "#{$record->id}"),
             'Symbol' => $record->symbol,
+            'Type' => $record->type,
         ];
     }
 
