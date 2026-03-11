@@ -794,16 +794,22 @@ class PurchaseOrderForm
             }
 
             $supplier = 0.0;
-            $supplierPrice = $item['requested_supplier_price'] ?? null;
             $supplierPercent = $item['requested_supplier_percentage'] ?? null;
+            $supplierPrice = $item['requested_supplier_price'] ?? null;
             $inputIsPercent = $item['requested_supplier_is_percentage'] ?? null;
 
-            if (is_numeric($supplierPrice)) {
-                $supplier = (float) $supplierPrice;
-            } elseif ($inputIsPercent === true && is_numeric($supplierPercent) && $unit > 0) {
-                $supplier = round($unit - ($unit * ((float) $supplierPercent / 100)), $decimalPlaces);
+            if ($inputIsPercent === true) {
+                if (is_numeric($supplierPercent) && $unit > 0) {
+                    $supplier = $unit - ($unit * ((float) $supplierPercent / 100));
+                }
+            } elseif ($inputIsPercent === false) {
+                if (is_numeric($supplierPrice)) {
+                    $supplier = (float) $supplierPrice;
+                }
             } elseif (is_numeric($supplierPercent) && $unit > 0) {
-                $supplier = round($unit - ($unit * ((float) $supplierPercent / 100)), $decimalPlaces);
+                $supplier = $unit - ($unit * ((float) $supplierPercent / 100));
+            } elseif (is_numeric($supplierPrice)) {
+                $supplier = (float) $supplierPrice;
             }
 
             $sumQty += $qty;
