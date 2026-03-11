@@ -1074,26 +1074,24 @@ class PurchaseOrderForm
     private static function updateRequestedLineTotal(callable $get, callable $set): void
     {
         $quantity = (float) ($get('requested_quantity') ?? 0);
-        $supplierPrice = $get('requested_supplier_price');
+        $supplierPrice = null;
+        $rawInput = $get('requested_supplier_input');
+        $rawInput = is_string($rawInput) ? trim($rawInput) : $rawInput;
 
-        if (! is_numeric($supplierPrice)) {
-            $supplierPrice = 0.0;
-            $rawInput = $get('requested_supplier_input');
-            $rawInput = is_string($rawInput) ? trim($rawInput) : $rawInput;
-
-            if (is_numeric($rawInput)) {
-                $supplierPrice = (float) $rawInput;
-            } elseif (is_string($rawInput) && str_ends_with($rawInput, '%')) {
-                $unitPrice = (float) ($get('requested_unit_price') ?? 0);
-                $numericValue = (float) str_replace('%', '', $rawInput);
-                $supplierPrice = $unitPrice - ($unitPrice * ($numericValue / 100));
-            }
+        if (is_string($rawInput) && str_ends_with($rawInput, '%')) {
+            $unitPrice = (float) ($get('requested_unit_price') ?? 0);
+            $numericValue = (float) str_replace('%', '', $rawInput);
+            $supplierPrice = $unitPrice - ($unitPrice * ($numericValue / 100));
+        } elseif (is_numeric($rawInput)) {
+            $supplierPrice = (float) $rawInput;
+        } elseif (is_numeric($get('requested_supplier_price'))) {
+            $supplierPrice = (float) $get('requested_supplier_price');
         }
 
         $store = Filament::getTenant();
         $currency = $store?->currency;
         $decimalPlaces = $currency->decimal_places ?? 2;
-        $lineTotal = $quantity * (float) $supplierPrice;
+        $lineTotal = $quantity * (float) ($supplierPrice ?? 0.0);
 
         $set('requested_line_total', round($lineTotal, $decimalPlaces));
     }
