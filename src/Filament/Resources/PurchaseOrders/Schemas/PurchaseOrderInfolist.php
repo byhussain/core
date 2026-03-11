@@ -8,6 +8,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use SmartTill\Core\Models\PurchaseOrder;
 
 class PurchaseOrderInfolist
 {
@@ -81,8 +82,9 @@ class PurchaseOrderInfolist
                                             ->weight('medium')
                                             ->columnSpanFull(),
 
-                                        TextEntry::make('total_requested_supplier_price')
+                                        TextEntry::make('calculated_total_requested_supplier_price')
                                             ->label('Total Supplier Cost')
+                                            ->state(fn (PurchaseOrder $record): float => $record->calculateRequestedSupplierTotal())
                                             ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
                                             ->weight('bold')
                                             ->color('success')
@@ -156,8 +158,9 @@ class PurchaseOrderInfolist
                                             })
                                             ->columnSpanFull(),
 
-                                        TextEntry::make('total_received_supplier_price')
+                                        TextEntry::make('calculated_total_received_supplier_price')
                                             ->label('Total Supplier Cost')
+                                            ->state(fn (PurchaseOrder $record): float => $record->calculateReceivedSupplierTotal())
                                             ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
                                             ->weight('bold')
                                             ->color('success')

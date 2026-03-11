@@ -108,11 +108,11 @@ class PurchaseOrder extends Model
         $totalReceivedQuantity = (float) $products->filter(fn ($product) => (float) ($product->received_quantity ?? 0) > 0)->count();
 
         $totalRequestedUnitPrice = (float) $products->sum(fn ($p) => (float) ($p->requested_quantity ?? 0) * (float) ($p->requested_unit_price ?? 0));
-        $totalRequestedSupplierPrice = (float) $products->sum(fn ($p) => (float) ($p->requested_quantity ?? 0) * (float) ($p->requested_supplier_price ?? 0));
+        $totalRequestedSupplierPrice = $this->calculateRequestedSupplierTotal();
         $totalRequestedTaxAmount = (float) $products->sum('requested_tax_amount');
 
         $totalReceivedUnitPrice = (float) $products->sum(fn ($p) => (float) ($p->received_quantity ?? 0) * (float) ($p->received_unit_price ?? 0));
-        $totalReceivedSupplierPrice = (float) $products->sum(fn ($p) => (float) ($p->received_quantity ?? 0) * (float) ($p->received_supplier_price ?? 0));
+        $totalReceivedSupplierPrice = $this->calculateReceivedSupplierTotal();
         $totalReceivedTaxAmount = (float) $products->sum('received_tax_amount');
 
         $this->forceFill([
@@ -125,5 +125,67 @@ class PurchaseOrder extends Model
             'total_requested_supplier_price' => round($totalRequestedSupplierPrice, $decimalPlaces),
             'total_received_supplier_price' => round($totalReceivedSupplierPrice, $decimalPlaces),
         ])->saveQuietly();
+    }
+
+    public function calculateRequestedSupplierTotal(): float
+    {
+        $this->loadMissing(['purchaseOrderProducts', 'store.currency']);
+
+        return round(
+            $this->purchaseOrderProducts->sum(fn ($product) => self::calculateLineSupplierTotal(
+                quantity: (float) ($product->requested_quantity ?? 0),
+                unitPrice: (float) ($product->requested_unit_price ?? 0),
+                supplierPrice: is_numeric($product->requested_supplier_price) ? (float) $product->requested_supplier_price : null,
+                supplierPercentage: is_numeric($product->requested_supplier_percentage) ? (float) $product->requested_supplier_percentage : null,
+                inputIsPercentage: $product->requested_supplier_is_percentage,
+            )),
+            $this->store?->currency?->decimal_places ?? 2,
+        );
+    }
+
+    public function calculateReceivedSupplierTotal(): float
+    {
+        $this->loadMissing(['purchaseOrderProducts', 'store.currency']);
+
+        return round(
+            $this->purchaseOrderProducts->sum(fn ($product) => self::calculateLineSupplierTotal(
+                quantity: (float) ($product->received_quantity ?? 0),
+                unitPrice: (float) ($product->received_unit_price ?? 0),
+                supplierPrice: is_numeric($product->received_supplier_price) ? (float) $product->received_supplier_price : null,
+                supplierPercentage: is_numeric($product->received_supplier_percentage) ? (float) $product->received_supplier_percentage : null,
+                inputIsPercentage: $product->received_supplier_is_percentage,
+            )),
+            $this->store?->currency?->decimal_places ?? 2,
+        );
+    }
+
+    private static function calculateLineSupplierTotal(
+        float $quantity,
+        float $unitPrice,
+        ?float $supplierPrice,
+        ?float $supplierPercentage,
+        ?bool $inputIsPercentage
+    ): float {
+        if ($quantity <= 0) {
+            return 0.0;
+        }
+
+        if ($inputIsPercentage === true && is_numeric($supplierPercentage) && $unitPrice > 0) {
+            return $quantity * ($unitPrice - ($unitPrice * ($supplierPercentage / 100)));
+        }
+
+        if ($inputIsPercentage === false && is_numeric($supplierPrice)) {
+            return $quantity * $supplierPrice;
+        }
+
+        if (is_numeric($supplierPercentage) && $unitPrice > 0) {
+            return $quantity * ($unitPrice - ($unitPrice * ($supplierPercentage / 100)));
+        }
+
+        if (is_numeric($supplierPrice)) {
+            return $quantity * $supplierPrice;
+        }
+
+        return 0.0;
     }
 }

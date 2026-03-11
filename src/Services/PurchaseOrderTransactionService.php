@@ -18,6 +18,9 @@ class PurchaseOrderTransactionService
             return;
         }
 
+        $purchaseOrder->recalculateTotals();
+        $purchaseOrder->refresh();
+
         // Use safe transaction to ensure data consistency
         DB::transaction(function () use ($purchaseOrder, $receivedBarcodesByVariation) {
             $purchaseOrder->loadMissing([
@@ -135,6 +138,9 @@ class PurchaseOrderTransactionService
         if ($purchaseOrder->status !== PurchaseOrderStatus::Closed) {
             return;
         }
+
+        $purchaseOrder->recalculateTotals();
+        $purchaseOrder->refresh();
 
         DB::transaction(function () use ($purchaseOrder) {
             $purchaseOrder->loadMissing(['supplier', 'variations', 'purchaseOrderProducts']);

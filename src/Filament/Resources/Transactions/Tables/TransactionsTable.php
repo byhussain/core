@@ -14,6 +14,7 @@ use SmartTill\Core\Filament\Resources\Suppliers\RelationManagers\TransactionsRel
 use SmartTill\Core\Filament\Resources\Variations\RelationManagers\TransactionsRelationManager;
 use SmartTill\Core\Models\PurchaseOrder;
 use SmartTill\Core\Models\Sale;
+use SmartTill\Core\Models\Transaction;
 
 class TransactionsTable
 {
@@ -78,9 +79,9 @@ class TransactionsTable
                     ->toggleable(),
                 TextColumn::make('amount')
                     ->label('Amount')
-                    ->getStateUsing(fn ($record) => abs($record->amount))
+                    ->getStateUsing(fn ($record) => abs(self::resolveDisplayedAmount($record)))
                     ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
-                    ->icon(fn ($record) => $record->amount > 0 ? Heroicon::OutlinedArrowUp : Heroicon::OutlinedArrowDown)
+                    ->icon(fn ($record) => self::resolveDisplayedAmount($record) > 0 ? Heroicon::OutlinedArrowUp : Heroicon::OutlinedArrowDown)
                     ->iconColor(fn ($record) => ($record->type === 'customer_credit' || $record->type === 'supplier_debit') ? 'success' : 'danger')
                     ->color(fn ($record) => ($record->type === 'customer_credit' || $record->type === 'supplier_debit') ? 'success' : 'danger')
                     ->hiddenOn(TransactionsRelationManager::class),
@@ -121,5 +122,22 @@ class TransactionsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('id', 'desc');
+    }
+
+    private static function resolveDisplayedAmount(Transaction $record): float
+    {
+        if (
+            in_array($record->referenceable_type, self::PURCHASE_ORDER_REFERENCEABLE_TYPES, true)
+            && $record->referenceable instanceof PurchaseOrder
+            && in_array($record->type, ['supplier_credit', 'supplier_debit'], true)
+        ) {
+            $purchaseOrderAmount = (float) $record->referenceable->calculateReceivedSupplierTotal();
+
+            return $record->type === 'supplier_credit'
+                ? -abs($purchaseOrderAmount)
+                : abs($purchaseOrderAmount);
+        }
+
+        return (float) $record->amount;
     }
 }
