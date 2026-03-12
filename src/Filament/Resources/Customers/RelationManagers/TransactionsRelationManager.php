@@ -154,7 +154,8 @@ class TransactionsRelationManager extends RelationManager
                             ->native(false),
                         Checkbox::make('include_paid_sales')
                             ->label('Include paid sales')
-                            ->helperText('Adds paid sale references to the export without changing ledger balances.')
+                            ->helperText('Some paid sales exist for this customer. Enable this to include them as reference rows without changing ledger balances.')
+                            ->visible(fn (RelationManager $livewire): bool => $livewire->hasPaidSalesForExport())
                             ->default(false),
                     ])
                     ->action(fn (array $data, RelationManager $livewire) => $livewire->downloadLedgerReport(
@@ -290,6 +291,11 @@ class TransactionsRelationManager extends RelationManager
             ->where('payment_status', SalePaymentStatus::Paid)
             ->orderByRaw('COALESCE(paid_at, created_at) asc')
             ->orderBy('id');
+    }
+
+    protected function hasPaidSalesForExport(): bool
+    {
+        return $this->getPaidSalesQueryForExport()->exists();
     }
 
     protected function shouldYieldTransactionFirst(?Transaction $transaction, ?Sale $sale): bool
