@@ -17,6 +17,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 use League\Csv\Bom;
@@ -272,7 +273,7 @@ class TransactionsRelationManager extends RelationManager
         }
     }
 
-    protected function getPaidSalesQueryForExport(): Builder
+    protected function getPaidSalesQueryForExport(): HasMany
     {
         /** @var \SmartTill\Core\Models\Customer $customer */
         $customer = $this->getOwnerRecord();

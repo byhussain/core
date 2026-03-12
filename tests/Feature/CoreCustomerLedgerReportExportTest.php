@@ -18,6 +18,7 @@ it('streams ledger rows instead of materializing the entire ledger in memory', f
 
     expect($contents)
         ->toContain('->cursor()')
+        ->toContain('protected function getPaidSalesQueryForExport(): HasMany')
         ->toContain("->reorder('created_at')")
         ->toContain("->orderBy('id')")
         ->toContain("->where('payment_status', SalePaymentStatus::Paid)")
