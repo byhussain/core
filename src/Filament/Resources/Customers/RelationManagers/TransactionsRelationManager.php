@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Grid;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -49,7 +50,34 @@ class TransactionsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return TransactionsTable::configure($table)
-            ->modifyQueryUsing(fn (Builder $query): Builder => $this->includePaidSalesInTableQuery($query))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $this->includePaidSalesInTableQuery($query)->with('referenceable'))
+            ->columns([
+                TextColumn::make('referenceable')
+                    ->label('Reference')
+                    ->state(fn (Transaction $record): string => $this->resolveReferenceSummaryForTable($record))
+                    ->color('primary'),
+                TextColumn::make('note')
+                    ->placeholder('—'),
+                TextColumn::make('type')
+                    ->label('Type')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => $state === self::PAID_SALE_REFERENCE_TYPE ? 'Paid Sale' : Str::headline($state))
+                    ->color(fn (string $state): string => $state === self::PAID_SALE_REFERENCE_TYPE ? 'info' : 'gray'),
+                TextColumn::make('created_at')
+                    ->label('Created at')
+                    ->since()
+                    ->timezone(fn () => Filament::getTenant()?->timezone?->name ?? 'UTC')
+                    ->sortable()
+                    ->tooltip(fn ($record) => $record->created_at?->setTimezone(Filament::getTenant()?->timezone?->name ?? 'UTC')->format('M d, Y g:i A')),
+                TextColumn::make('amount')
+                    ->label('Amount')
+                    ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR'),
+                TextColumn::make('amount_balance')
+                    ->label('Balance')
+                    ->state(fn (Transaction $record) => $record->type === self::PAID_SALE_REFERENCE_TYPE ? null : $record->amount_balance)
+                    ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
+                    ->placeholder('—'),
+            ])
             ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('type')
@@ -373,7 +401,7 @@ class TransactionsRelationManager extends RelationManager
 
     protected function resolveSaleReferenceSummary(Sale $sale): string
     {
-        $referenceValue = $sale->reference ?: ($sale->local_id ?: $sale->id);
+        $referenceValue = $sale->reference ?: $sale->id;
 
         return "Sale #{$referenceValue}";
     }
@@ -431,10 +459,28 @@ class TransactionsRelationManager extends RelationManager
         $referenceType = class_basename((string) $record->referenceable_type);
         $referenceable = $record->referenceable()->getResults();
         $referenceValue = $referenceable?->reference
-            ?? $referenceable?->local_id
             ?? $record->referenceable_id;
 
         return $referenceCache[$cacheKey] = filled($referenceValue)
+            ? "{$referenceType} #{$referenceValue}"
+            : '—';
+    }
+
+    protected function resolveReferenceSummaryForTable(Transaction $record): string
+    {
+        if ($record->type === self::PAID_SALE_REFERENCE_TYPE && $record->referenceable instanceof Sale) {
+            return $this->resolveSaleReferenceSummary($record->referenceable);
+        }
+
+        if (! filled($record->referenceable_type) || ! filled($record->referenceable_id)) {
+            return '—';
+        }
+
+        $referenceType = class_basename((string) $record->referenceable_type);
+        $referenceable = $record->referenceable;
+        $referenceValue = $referenceable?->reference ?? $record->referenceable_id;
+
+        return filled($referenceValue)
             ? "{$referenceType} #{$referenceValue}"
             : '—';
     }
