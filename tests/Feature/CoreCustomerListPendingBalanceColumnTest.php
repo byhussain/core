@@ -21,7 +21,9 @@ it('shows balance after email in the customers table', function (): void {
     expect($contents)
         ->toContain('->modifyQueryUsing(fn (Builder $query): Builder => $query->withPendingBalance())')
         ->toContain("->label('Balance')")
-        ->toContain("number_format(\$pendingBalance, \$decimalPlaces, '.', ',')");
+        ->toContain("number_format(\$pendingBalance, \$decimalPlaces, '.', ',')")
+        ->toContain("TextColumn::make('email')")
+        ->toContain("->toggleable(isToggledHiddenByDefault: true)");
 
     expect($emailPosition)->not->toBeFalse();
     expect($balancePosition)->not->toBeFalse();

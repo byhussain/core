@@ -34,7 +34,8 @@ class CustomersTable
                     ->searchable(),
                 TextColumn::make('email')
                     ->label('Email address')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('pending_balance_raw')
                     ->label('Balance')
                     ->state(function (Customer $record): string {
