@@ -54,15 +54,34 @@ class TransactionsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('referenceable')
                     ->label('Reference')
-                    ->state(fn (Transaction $record): string => $this->resolveReferenceSummaryForTable($record))
-                    ->color('primary'),
+                    ->description(
+                        fn (Transaction $record): string => $record->type === self::PAID_SALE_REFERENCE_TYPE
+                            ? 'Sale'
+                            : class_basename((string) $record->referenceable_type),
+                        'above'
+                    )
+                    ->color('primary')
+                    ->prefix('#')
+                    ->formatStateUsing(fn (Transaction $record) => $record->referenceable?->reference ?? $record->referenceable_id)
+                    ->url(function (Transaction $record): ?string {
+                        if ($record->referenceable instanceof Sale) {
+                            return \SmartTill\Core\Filament\Resources\Sales\SaleResource::getUrl('view', ['record' => $record->referenceable]);
+                        }
+
+                        return null;
+                    }),
                 TextColumn::make('note')
                     ->placeholder('—'),
                 TextColumn::make('type')
                     ->label('Type')
-                    ->badge()
                     ->formatStateUsing(fn (string $state): string => $state === self::PAID_SALE_REFERENCE_TYPE ? 'Paid Sale' : Str::headline($state))
-                    ->color(fn (string $state): string => $state === self::PAID_SALE_REFERENCE_TYPE ? 'info' : 'gray'),
+                    ->color(function (string $state): ?string {
+                        return match ($state) {
+                            'customer_credit' => 'success',
+                            'customer_debit' => 'danger',
+                            default => null,
+                        };
+                    }),
                 TextColumn::make('created_at')
                     ->label('Created at')
                     ->since()
@@ -71,7 +90,27 @@ class TransactionsRelationManager extends RelationManager
                     ->tooltip(fn ($record) => $record->created_at?->setTimezone(Filament::getTenant()?->timezone?->name ?? 'UTC')->format('M d, Y g:i A')),
                 TextColumn::make('amount')
                     ->label('Amount')
-                    ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR'),
+                    ->getStateUsing(fn (Transaction $record): float => abs((float) $record->amount))
+                    ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
+                    ->icon(fn (Transaction $record): ?Heroicon => match ($record->type) {
+                        'customer_credit' => Heroicon::OutlinedArrowUp,
+                        'customer_debit' => Heroicon::OutlinedArrowDown,
+                        default => null,
+                    })
+                    ->iconColor(function (Transaction $record): ?string {
+                        return match ($record->type) {
+                            'customer_credit' => 'success',
+                            'customer_debit' => 'danger',
+                            default => null,
+                        };
+                    })
+                    ->color(function (Transaction $record): ?string {
+                        return match ($record->type) {
+                            'customer_credit' => 'success',
+                            'customer_debit' => 'danger',
+                            default => null,
+                        };
+                    }),
                 TextColumn::make('amount_balance')
                     ->label('Balance')
                     ->state(fn (Transaction $record) => $record->type === self::PAID_SALE_REFERENCE_TYPE ? null : $record->amount_balance)

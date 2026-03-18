@@ -23,11 +23,20 @@ it('renders the customer transactions table with ledger-style reference values a
 
     expect($contents)
         ->toContain("TextColumn::make('referenceable')")
-        ->toContain("->state(fn (Transaction \$record): string => \$this->resolveReferenceSummaryForTable(\$record))")
+        ->toContain("->description(")
+        ->toContain("? 'Sale'")
+        ->toContain("->prefix('#')")
+        ->toContain("->formatStateUsing(fn (Transaction \$record) => \$record->referenceable?->reference ?? \$record->referenceable_id)")
+        ->toContain("SaleResource::getUrl('view', ['record' => \$record->referenceable])")
         ->toContain("TextColumn::make('type')")
         ->toContain("->formatStateUsing(fn (string \$state): string => \$state === self::PAID_SALE_REFERENCE_TYPE ? 'Paid Sale' : Str::headline(\$state))")
+        ->toContain("'customer_credit' => 'success'")
+        ->toContain("'customer_debit' => 'danger'")
         ->toContain("TextColumn::make('amount_balance')")
         ->toContain("->state(fn (Transaction \$record) => \$record->type === self::PAID_SALE_REFERENCE_TYPE ? null : \$record->amount_balance)")
+        ->toContain("TextColumn::make('amount')")
+        ->toContain("->getStateUsing(fn (Transaction \$record): float => abs((float) \$record->amount))")
+        ->toContain("default => null,")
         ->toContain("\$referenceValue = \$sale->reference ?: \$sale->id;")
         ->not->toContain("\$referenceable?->local_id");
 });
