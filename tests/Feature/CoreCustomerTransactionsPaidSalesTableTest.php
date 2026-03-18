@@ -10,6 +10,8 @@ it('includes paid sale references in the customer transactions relation manager 
         ->toContain("return Transaction::query()")
         ->toContain("->unionAll(")
         ->toContain("(1000000000 + sales.id) as id")
+        ->toContain("null as local_id")
+        ->toContain("null as reference")
         ->toContain("COALESCE(sales.note, 'Paid sale (informational only)') as note");
 });
 

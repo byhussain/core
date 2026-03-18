@@ -323,6 +323,8 @@ class TransactionsRelationManager extends RelationManager
             ->where('payment_status', SalePaymentStatus::Paid)
             ->selectRaw('(1000000000 + sales.id) as id')
             ->selectRaw('sales.store_id')
+            ->selectRaw('null as local_id')
+            ->selectRaw('null as reference')
             ->selectRaw('? as transactionable_type', [Customer::class])
             ->selectRaw('sales.customer_id as transactionable_id')
             ->selectRaw('? as referenceable_type', [Sale::class])
