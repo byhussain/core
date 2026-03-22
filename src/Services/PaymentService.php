@@ -8,6 +8,7 @@ use SmartTill\Core\Enums\PaymentMethod;
 use SmartTill\Core\Models\Customer;
 use SmartTill\Core\Models\Payment;
 use SmartTill\Core\Models\Supplier;
+use SmartTill\Core\Models\Transaction;
 
 class PaymentService
 {
@@ -66,8 +67,7 @@ class PaymentService
                 throw new \InvalidArgumentException('Unsupported payable model for payment recording.');
             }
 
-            // Customer payment flow
-            $lastBalance = $payable->transactions()->latest('id')->value('amount_balance') ?? 0;
+            $lastBalance = $this->getLatestCustomerBalance($payable);
 
             if ($amount >= 0) {
                 $transactionAmount = -$amount;
@@ -81,8 +81,10 @@ class PaymentService
 
             $newBalance = $lastBalance + $transactionAmount;
 
-            $payable->transactions()->create([
+            Transaction::query()->create([
                 'store_id' => $payable->store_id,
+                'transactionable_type' => $payable->getMorphClass(),
+                'transactionable_id' => $payable->getKey(),
                 'referenceable_type' => Payment::class,
                 'referenceable_id' => $payment->id,
                 'type' => $transactionType,
@@ -123,5 +125,15 @@ class PaymentService
 
             return $payment->fresh();
         });
+    }
+
+    protected function getLatestCustomerBalance(Customer $customer): float
+    {
+        return (float) (Transaction::query()
+            ->where('store_id', $customer->store_id)
+            ->where('transactionable_id', $customer->getKey())
+            ->whereIn('transactionable_type', Customer::transactionMorphTypes())
+            ->latest('id')
+            ->value('amount_balance') ?? 0);
     }
 }

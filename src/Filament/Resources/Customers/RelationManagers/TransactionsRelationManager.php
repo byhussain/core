@@ -233,9 +233,14 @@ class TransactionsRelationManager extends RelationManager
     protected function includePaidSalesInTableQuery(Builder $query): Builder
     {
         $columns = $this->transactionTableColumns();
+        /** @var \SmartTill\Core\Models\Customer $customer */
+        $customer = $this->getOwnerRecord();
 
-        $transactionsBaseQuery = (clone $query)
+        $transactionsBaseQuery = Transaction::query()
             ->select($this->qualifyTransactionColumns($columns))
+            ->where('transactions.transactionable_id', $customer->getKey())
+            ->whereNotNull('transactions.transactionable_id')
+            ->whereIn('transactions.transactionable_type', Customer::transactionMorphTypes())
             ->getQuery();
 
         $transactionsBaseQuery->unionAll(
