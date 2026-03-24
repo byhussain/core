@@ -35,6 +35,8 @@ it('renders the customer transactions table with ledger-style reference values a
         ->toContain("->state(fn (Transaction \$record) => \$record->type === self::PAID_SALE_REFERENCE_TYPE ? null : \$record->amount_balance)")
         ->toContain("TextColumn::make('amount')")
         ->toContain("->getStateUsing(fn (Transaction \$record): float => abs((float) \$record->amount))")
+        ->toContain("'customer_credit' => Heroicon::OutlinedArrowDown")
+        ->toContain("'customer_debit' => Heroicon::OutlinedArrowUp")
         ->toContain("default => null,")
         ->toContain("\$referenceValue = \$sale->reference ?: \$sale->id;")
         ->not->toContain("\$referenceable?->local_id")

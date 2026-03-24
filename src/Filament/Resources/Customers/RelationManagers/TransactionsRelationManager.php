@@ -84,8 +84,8 @@ class TransactionsRelationManager extends RelationManager
                     ->getStateUsing(fn (Transaction $record): float => abs((float) $record->amount))
                     ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
                     ->icon(fn (Transaction $record): ?Heroicon => match ($record->type) {
-                        'customer_credit' => Heroicon::OutlinedArrowUp,
-                        'customer_debit' => Heroicon::OutlinedArrowDown,
+                        'customer_credit' => Heroicon::OutlinedArrowDown,
+                        'customer_debit' => Heroicon::OutlinedArrowUp,
                         default => null,
                     })
                     ->iconColor(function (Transaction $record): ?string {
