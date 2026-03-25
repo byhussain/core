@@ -18,6 +18,10 @@ class CoreStoreSettingsService
 
     public const SETTING_RECEIPT_SHOW_DIFFERENCES = 'RECEIPT_SHOW_DIFFERENCES';
 
+    public const SETTING_RECEIPT_SHOW_HEADER_NOTE = 'RECEIPT_SHOW_HEADER_NOTE';
+
+    public const SETTING_RECEIPT_SHOW_FOOTER_NOTE = 'RECEIPT_SHOW_FOOTER_NOTE';
+
     public const SETTING_TAX_ENABLED = 'TAX_ENABLED';
 
     public const SETTING_FBR_ENVIRONMENT = 'FBR_ENVIRONMENT';
@@ -143,6 +147,24 @@ class CoreStoreSettingsService
         );
     }
 
+    public function getShowHeaderNoteInReceipt(Model $store): bool
+    {
+        return $this->getBooleanSetting(
+            $store,
+            self::SETTING_RECEIPT_SHOW_HEADER_NOTE,
+            true
+        );
+    }
+
+    public function getShowFooterNoteInReceipt(Model $store): bool
+    {
+        return $this->getBooleanSetting(
+            $store,
+            self::SETTING_RECEIPT_SHOW_FOOTER_NOTE,
+            true
+        );
+    }
+
     public function getFbrEnvironment(Model $store): string
     {
         $value = $this->getSettingValue($store, self::SETTING_FBR_ENVIRONMENT);
@@ -235,6 +257,14 @@ class CoreStoreSettingsService
             ],
             self::SETTING_RECEIPT_SHOW_DIFFERENCES => [
                 'value' => ((bool) ($store->getAttribute('show_differences_in_receipt') ?? false)) ? '1' : '0',
+                'type' => 'dropdown',
+            ],
+            self::SETTING_RECEIPT_SHOW_HEADER_NOTE => [
+                'value' => '1',
+                'type' => 'dropdown',
+            ],
+            self::SETTING_RECEIPT_SHOW_FOOTER_NOTE => [
+                'value' => '1',
                 'type' => 'dropdown',
             ],
             self::SETTING_TAX_ENABLED => [

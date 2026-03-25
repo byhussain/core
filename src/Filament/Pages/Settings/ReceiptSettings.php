@@ -51,6 +51,8 @@ class ReceiptSettings extends Page
             'receipt_format' => $settingsService->getReceiptFormat($store),
             'show_decimals_in_total' => $settingsService->getShowDecimalsInReceiptTotal($store),
             'show_differences' => $settingsService->getShowDifferencesInReceipt($store),
+            'show_header_note' => $settingsService->getShowHeaderNoteInReceipt($store),
+            'show_footer_note' => $settingsService->getShowFooterNoteInReceipt($store),
         ]);
     }
 
@@ -72,6 +74,13 @@ class ReceiptSettings extends Page
                             ->label('Show differences in receipt')
                             ->visible(fn (callable $get): bool => ! $get('show_decimals_in_total')),
                     ]),
+                Section::make('Notes')
+                    ->schema([
+                        Toggle::make('show_header_note')
+                            ->label('Show Header Note'),
+                        Toggle::make('show_footer_note')
+                            ->label('Show Footer Note'),
+                    ]),
             ]);
     }
 
@@ -89,6 +98,8 @@ class ReceiptSettings extends Page
         $settingsService->setSetting($store, CoreStoreSettingsService::SETTING_RECEIPT_FORMAT, $data['receipt_format'], 'dropdown');
         $settingsService->setSetting($store, CoreStoreSettingsService::SETTING_RECEIPT_SHOW_DECIMALS_IN_TOTAL, (bool) $data['show_decimals_in_total'], 'dropdown');
         $settingsService->setSetting($store, CoreStoreSettingsService::SETTING_RECEIPT_SHOW_DIFFERENCES, (bool) ($data['show_differences'] ?? false), 'dropdown');
+        $settingsService->setSetting($store, CoreStoreSettingsService::SETTING_RECEIPT_SHOW_HEADER_NOTE, (bool) ($data['show_header_note'] ?? true), 'dropdown');
+        $settingsService->setSetting($store, CoreStoreSettingsService::SETTING_RECEIPT_SHOW_FOOTER_NOTE, (bool) ($data['show_footer_note'] ?? true), 'dropdown');
 
         Notification::make()
             ->title('Receipt settings saved')

@@ -15,6 +15,7 @@ use SmartTill\Core\Enums\SalePaymentMethod;
 use SmartTill\Core\Enums\SalePaymentStatus;
 use SmartTill\Core\Enums\SaleStatus;
 use SmartTill\Core\Observers\SaleObserver;
+use SmartTill\Core\Services\CoreStoreSettingsService;
 use SmartTill\Core\Traits\HasStoreScopedReference;
 use SmartTill\Core\Traits\TracksUserActivity;
 
@@ -41,6 +42,8 @@ class Sale extends Model
         'use_fbr',
         'paid_at',
         'note',
+        'header_note',
+        'footer_note',
         'fbr_invoice_number',
         'fbr_qr_code',
         'fbr_synced_at',
@@ -104,6 +107,60 @@ class Sale extends Model
         $multiplier = (int) pow(10, $decimalPlaces);
 
         return $multiplier > 0 ? $multiplier : 1;
+    }
+
+    public function convertStoredAmount(int|float|string|null $amount): float
+    {
+        return (float) $amount / $this->currencyMultiplier();
+    }
+
+    public function shouldShowDecimalsInReceiptTotal(): bool
+    {
+        $this->loadMissing('store');
+
+        if (! $this->store) {
+            return true;
+        }
+
+        return app(CoreStoreSettingsService::class)->getShowDecimalsInReceiptTotal($this->store);
+    }
+
+    public function ledgerTotalAmount(): float
+    {
+        $total = (float) ($this->total ?? 0);
+
+        if ($this->shouldShowDecimalsInReceiptTotal()) {
+            return $total;
+        }
+
+        return (float) round($total);
+    }
+
+    public function headerNote(): ?string
+    {
+        return $this->header_note ?: $this->note;
+    }
+
+    public function shouldShowHeaderNoteInReceipt(): bool
+    {
+        $this->loadMissing('store');
+
+        if (! $this->store) {
+            return true;
+        }
+
+        return app(CoreStoreSettingsService::class)->getShowHeaderNoteInReceipt($this->store);
+    }
+
+    public function shouldShowFooterNoteInReceipt(): bool
+    {
+        $this->loadMissing('store');
+
+        if (! $this->store) {
+            return true;
+        }
+
+        return app(CoreStoreSettingsService::class)->getShowFooterNoteInReceipt($this->store);
     }
 
     public function buildReceiptLines(): Collection

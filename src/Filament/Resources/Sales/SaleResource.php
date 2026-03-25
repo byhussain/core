@@ -59,7 +59,7 @@ class SaleResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['reference', 'local_id', 'customer.name', 'customer.phone', 'note'];
+        return ['reference', 'local_id', 'customer.name', 'customer.phone', 'header_note', 'footer_note', 'note'];
     }
 
     public static function getGlobalSearchResultTitle(Model $record): string|Htmlable

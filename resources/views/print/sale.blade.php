@@ -76,6 +76,10 @@
         $showDifferences = $sale->store
             ? $settingsService->getShowDifferencesInReceipt($sale->store)
             : false;
+        $showHeaderNote = $sale->shouldShowHeaderNoteInReceipt();
+        $showFooterNote = $sale->shouldShowFooterNoteInReceipt();
+        $headerNote = $sale->headerNote();
+        $footerNote = $sale->footer_note;
 
 
         // Get currency code from store
@@ -386,11 +390,11 @@
         </div>
         @endif
 
-        @if($sale->note)
+        @if($showHeaderNote && filled($headerNote))
             <div class="customer-box mb-1">
-                <div class="text-xs font-bold text-slate-700 mb-0.5 uppercase tracking-wider">Note</div>
+                <div class="text-xs font-bold text-slate-700 mb-0.5 uppercase tracking-wider">Header Note</div>
                 <div class="text-xs text-slate-700 leading-tight">
-                    <span class="font-bold text-slate-700">{{ $sale->note }}</span>
+                    <span>{{ $headerNote }}</span>
                 </div>
             </div>
         @endif
@@ -598,6 +602,15 @@
                 <span>Total Amount:</span>
                     <span class="whitespace-nowrap text-blue-600 {{ $totalAmountClass }}">{{ $fmtTotal($finalTotal) }} {{ $currencyCode }}</span>
             </div>
+
+            @if($showFooterNote && filled($footerNote))
+                <div class="customer-box mt-2">
+                    <div class="text-xs font-bold text-slate-700 mb-0.5 uppercase tracking-wider">Footer Note</div>
+                    <div class="text-xs text-slate-700 leading-tight">
+                        <span>{{ $footerNote }}</span>
+                    </div>
+                </div>
+            @endif
         </div>
 
             <!-- Thank You Message (Hidden on multi-page) -->

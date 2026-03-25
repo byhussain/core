@@ -347,18 +347,19 @@ class SaleTransactionService
                     ->first();
 
                 if (! $existingCustomerTransaction) {
+                    $ledgerAmount = $sale->ledgerTotalAmount();
                     $lastBalance = $customer->transactions()->latest('id')->value('amount_balance') ?? 0;
-                    $newBalance = $lastBalance + $sale->total;
+                    $newBalance = $lastBalance + $ledgerAmount;
 
                     $customer->transactions()
                         ->create([
                             'store_id' => $sale->store_id,
                             'referenceable_type' => Sale::class,
                             'referenceable_id' => $sale->id,
-                            'type' => ($sale->total > 0) ? 'customer_debit' : 'customer_credit',
-                            'amount' => $sale->total,
+                            'type' => ($ledgerAmount > 0) ? 'customer_debit' : 'customer_credit',
+                            'amount' => $ledgerAmount,
                             'amount_balance' => $newBalance,
-                            'note' => ($sale->total > 0) ? 'Sale completed: customer debit' : 'Sale returned: customer credit',
+                            'note' => ($ledgerAmount > 0) ? 'Sale completed: customer debit' : 'Sale returned: customer credit',
                         ]);
                 }
             }
@@ -1339,18 +1340,19 @@ class SaleTransactionService
                         ->first();
 
                     if (! $existingCustomerTransaction) {
+                        $ledgerAmount = $sale->ledgerTotalAmount();
                         $lastBalance = $customer->transactions()->latest('id')->value('amount_balance') ?? 0;
-                        $newBalance = $lastBalance + $newTotal;
+                        $newBalance = $lastBalance + $ledgerAmount;
 
                         $customer->transactions()
                             ->create([
                                 'store_id' => $sale->store_id,
                                 'referenceable_type' => Sale::class,
                                 'referenceable_id' => $sale->id,
-                                'type' => ($newTotal > 0) ? 'customer_debit' : 'customer_credit',
-                                'amount' => $newTotal,
+                                'type' => ($ledgerAmount > 0) ? 'customer_debit' : 'customer_credit',
+                                'amount' => $ledgerAmount,
                                 'amount_balance' => $newBalance,
-                                'note' => ($newTotal > 0) ? 'Sale completed: customer debit' : 'Sale returned: customer credit',
+                                'note' => ($ledgerAmount > 0) ? 'Sale completed: customer debit' : 'Sale returned: customer credit',
                             ]);
                     }
                 }

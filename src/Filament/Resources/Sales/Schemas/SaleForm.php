@@ -2115,15 +2115,28 @@ class SaleForm
                                             ->getOptionLabelFromRecordUsing(fn (Model $record) => "$record->name - $record->phone")
                                             ->createOptionForm(fn (Schema $schema) => CustomerForm::configure($schema))
                                             ->createOptionModalHeading('New Customer'),
-                                        \Filament\Forms\Components\Textarea::make('note')
-                                            ->label('Note')
-                                            ->placeholder('Add a note for this sale (optional)')
+                                    ])
+                                    ->columnSpanFull(),
+                                Section::make('Notes')
+                                    ->schema([
+                                        \Filament\Forms\Components\Textarea::make('header_note')
+                                            ->label('Header Note')
+                                            ->placeholder('Add a header note for this sale (optional)')
+                                            ->rows(3)
+                                            ->maxLength(1000)
+                                            ->extraInputAttributes([
+                                                'x-on:focus' => '$event.target.select && $event.target.select()',
+                                            ]),
+                                        \Filament\Forms\Components\Textarea::make('footer_note')
+                                            ->label('Footer Note')
+                                            ->placeholder('Add a footer note for this sale (optional)')
                                             ->rows(3)
                                             ->maxLength(1000)
                                             ->extraInputAttributes([
                                                 'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ]),
                                     ])
+                                    ->columns(2)
                                     ->columnSpanFull(),
                                 Section::make()
                                     ->schema([
@@ -3542,7 +3555,9 @@ class SaleForm
                             ? round((float) ($state['sale_discount_percentage'] ?? 0), 6)
                             : null,
                         'freight_fare' => round((float) ($state['freight_fare'] ?? 0), 2),
-                        'note' => $state['note'] ?? null,
+                        'note' => $state['header_note'] ?? null,
+                        'header_note' => $state['header_note'] ?? null,
+                        'footer_note' => $state['footer_note'] ?? null,
                     ];
 
                     // Set paid_at if payment status is Paid and not already set
@@ -3880,7 +3895,9 @@ class SaleForm
                             : null,
                         'freight_fare' => round((float) ($state['freight_fare'] ?? 0), 2),
                         'status' => $status,
-                        'note' => $state['note'] ?? null,
+                        'note' => $state['header_note'] ?? null,
+                        'header_note' => $state['header_note'] ?? null,
+                        'footer_note' => $state['footer_note'] ?? null,
                     ];
 
                     // Set paid_at if payment status is Paid
