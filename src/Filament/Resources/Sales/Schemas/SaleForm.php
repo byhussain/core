@@ -2117,13 +2117,14 @@ class SaleForm
                                             ->createOptionModalHeading('New Customer'),
                                     ])
                                     ->columnSpanFull(),
-                                Section::make('Notes')
+                                Section::make()
                                     ->schema([
                                         \Filament\Forms\Components\Textarea::make('header_note')
                                             ->label('Header Note')
                                             ->placeholder('Add a header note for this sale (optional)')
                                             ->rows(3)
                                             ->maxLength(1000)
+                                            ->columnSpanFull()
                                             ->extraInputAttributes([
                                                 'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ]),
@@ -2132,11 +2133,12 @@ class SaleForm
                                             ->placeholder('Add a footer note for this sale (optional)')
                                             ->rows(3)
                                             ->maxLength(1000)
+                                            ->columnSpanFull()
                                             ->extraInputAttributes([
                                                 'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ]),
                                     ])
-                                    ->columns(2)
+                                    ->columns(1)
                                     ->columnSpanFull(),
                                 Section::make()
                                     ->schema([
