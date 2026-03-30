@@ -28,12 +28,6 @@ class VariationPricingImporter extends Importer
                 ->requiredMapping()
                 ->rules(['required', 'string'])
                 ->fillRecordUsing(fn (): null => null),
-            ImportColumn::make('category')
-                ->label('Category')
-                ->exampleHeader('Category')
-                ->requiredMapping()
-                ->rules(['required', 'string'])
-                ->fillRecordUsing(fn (): null => null),
             ImportColumn::make('description')
                 ->label('Description')
                 ->exampleHeader('Description')
@@ -75,7 +69,6 @@ class VariationPricingImporter extends Importer
 
         $sku = trim((string) ($this->data['sku'] ?? ''));
         $brand = trim((string) ($this->data['brand'] ?? ''));
-        $category = trim((string) ($this->data['category'] ?? ''));
         $description = trim((string) ($this->data['description'] ?? ''));
 
         if ($sku === '') {
