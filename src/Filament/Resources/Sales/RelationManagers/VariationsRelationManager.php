@@ -95,7 +95,13 @@ class VariationsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('sale_line_description')
                     ->label('Description')
-                    ->searchable(),
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function (Builder $query) use ($search): Builder {
+                            return $query
+                                ->where('sale_lines.description', 'like', "%{$search}%")
+                                ->orWhere('variations.sku', 'like', "%{$search}%");
+                        });
+                    }),
                 TextColumn::make('sku')
                     ->label('SKU')
                     ->searchable()
