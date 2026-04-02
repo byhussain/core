@@ -21,12 +21,18 @@ class ProductObserver
     public function updated(Product $product): void
     {
         // If brand_id changed, update all variations with new brand_name
-        if ($product->isDirty('brand_id')) {
+        if ($product->wasChanged('brand_id')) {
             $product->load('brand');
             $brandName = $product->brand?->name;
 
             $product->variations()->update([
                 'brand_name' => $brandName,
+            ]);
+        }
+
+        if ($product->wasChanged('name') && ! $product->has_variations) {
+            $product->variations()->update([
+                'description' => (string) $product->name,
             ]);
         }
 
