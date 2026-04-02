@@ -72,7 +72,7 @@ class TransactionsTable
                     ]),
                 TextColumn::make('created_at')
                     ->label('Created at')
-                    ->since()
+                    ->dateTime('M d, Y g:i A')
                     ->timezone(fn () => Filament::getTenant()?->timezone?->name ?? 'UTC')
                     ->sortable()
                     ->tooltip(fn ($record) => $record->created_at?->setTimezone(Filament::getTenant()?->timezone?->name ?? 'UTC')->format('M d, Y g:i A'))
