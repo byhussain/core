@@ -2106,6 +2106,7 @@ class SaleForm
                                                 ->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()])
                                                 ->toArray())
                                             ->default(SalePaymentStatus::default())
+                                            ->live()
                                             ->searchable()
                                             ->preload(),
                                         Select::make('payment_method')
