@@ -21,13 +21,58 @@ class ProductObserver
     public function updated(Product $product): void
     {
         // If brand_id changed, update all variations with new brand_name
-        if ($product->isDirty('brand_id')) {
+        if ($product->wasChanged('brand_id')) {
             $product->load('brand');
             $brandName = $product->brand?->name;
 
             $product->variations()->update([
                 'brand_name' => $brandName,
             ]);
+        }
+
+        if ($product->wasChanged('name')) {
+            $originalName = trim((string) $product->getOriginal('name'));
+            $currentName = trim((string) $product->name);
+
+            $product->variations()
+                ->get()
+                ->each(function ($variation) use ($originalName, $currentName, $product): void {
+                    $description = trim((string) $variation->description);
+
+                    if (! $product->has_variations) {
+                        if ($description === $currentName) {
+                            return;
+                        }
+
+                        $variation->update([
+                            'description' => $currentName,
+                        ]);
+
+                        return;
+                    }
+
+                    if ($originalName === '') {
+                        return;
+                    }
+
+                    if ($description === $originalName) {
+                        $variation->update([
+                            'description' => $currentName,
+                        ]);
+
+                        return;
+                    }
+
+                    $prefix = $originalName.' - ';
+
+                    if (! str_starts_with($description, $prefix)) {
+                        return;
+                    }
+
+                    $variation->update([
+                        'description' => $currentName.substr($description, strlen($originalName)),
+                    ]);
+                });
         }
 
         $this->invalidateProductSearchCache($product->store_id);

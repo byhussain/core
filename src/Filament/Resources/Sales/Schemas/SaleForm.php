@@ -1506,29 +1506,8 @@ class SaleForm
                                                             return $existingId;
                                                         }
 
-                                                        // If not in form state, check if we can get it from the array
-                                                        // by matching variation_id + stock_id
                                                         $variationId = $get('variation_id');
                                                         $stockId = $get('stock_id');
-
-                                                        if ($variationId && $stockId) {
-                                                            // Try to get preparable_items from parent
-                                                            try {
-                                                                $preparableItems = $get('../../preparable_items') ?? [];
-                                                                if (is_array($preparableItems)) {
-                                                                    foreach ($preparableItems as $item) {
-                                                                        if (($item['variation_id'] ?? null) == $variationId &&
-                                                                            ($item['stock_id'] ?? null) == $stockId) {
-                                                                            if (! empty($item['item_id'] ?? null)) {
-                                                                                return $item['item_id'];
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            } catch (\Exception $e) {
-                                                                // If we can't access parent, generate new ID
-                                                            }
-                                                        }
 
                                                         // Generate new ID if none found
                                                         $newId = self::makeDraftPreparableItemId($variationId, $stockId);
@@ -1571,28 +1550,6 @@ class SaleForm
                                                         $currentItemId = $get('item_id');
                                                         $variationId = $get('variation_id');
                                                         $stockId = $get('stock_id');
-
-                                                        // If item_id is missing, try to get it from the parent array
-                                                        if (empty($currentItemId) && $variationId && $stockId) {
-                                                            try {
-                                                                $preparableItems = $get('../../preparable_items') ?? [];
-                                                                if (is_array($preparableItems)) {
-                                                                    // Find the item by variation_id + stock_id (unique for different products)
-                                                                    foreach ($preparableItems as $item) {
-                                                                        if (($item['variation_id'] ?? null) == $variationId &&
-                                                                            ($item['stock_id'] ?? null) == $stockId) {
-                                                                            if (! empty($item['item_id'] ?? null)) {
-                                                                                $currentItemId = $item['item_id'];
-                                                                                $set('item_id', $currentItemId);
-                                                                                break;
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            } catch (\Exception $e) {
-                                                                // If we can't access parent, generate new ID
-                                                            }
-                                                        }
 
                                                         // If still no item_id, generate one (shouldn't happen, but safety net)
                                                         if (empty($currentItemId)) {
@@ -2149,6 +2106,7 @@ class SaleForm
                                                 ->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()])
                                                 ->toArray())
                                             ->default(SalePaymentStatus::default())
+                                            ->live()
                                             ->searchable()
                                             ->preload(),
                                         Select::make('payment_method')

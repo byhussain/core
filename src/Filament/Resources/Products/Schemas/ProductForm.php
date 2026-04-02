@@ -521,8 +521,53 @@ class ProductForm
                             ->placeholder('Enter product name')
                             ->helperText('Clear, descriptive product title')
                             ->maxLength(255)
-                            ->afterStateUpdated(function ($state, callable $set, callable $get) use ($buildVariations) {
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) use ($buildVariations, $makeSignatureFromAttrPartFactory) {
                                 if ($get('has_variations')) {
+                                    $fresh = collect($buildVariations($get));
+                                    $existing = collect($get('variations') ?? []);
+
+                                    if ($existing->isEmpty()) {
+                                        $set('variations', array_values($fresh->all()));
+                                        $set('variations_generated', true);
+                                        $set('variations_ready', true);
+
+                                        return;
+                                    }
+
+                                    if ($existing->contains(fn ($row) => empty($row['key']))) {
+                                        $makeSignatureFromAttrPart = $makeSignatureFromAttrPartFactory($get);
+
+                                        $existing = $existing->map(function ($row) use ($makeSignatureFromAttrPart, $fresh) {
+                                            if (! empty($row['key'])) {
+                                                return $row;
+                                            }
+
+                                            $description = (string) ($row['description'] ?? '');
+                                            $position = strrpos($description, ' - ');
+                                            $attributePart = $position === false ? $description : substr($description, $position + 3);
+                                            $signature = $makeSignatureFromAttrPart($attributePart);
+
+                                            if ($signature && isset($fresh[$signature])) {
+                                                $row['key'] = $signature;
+                                            }
+
+                                            return $row;
+                                        });
+                                    }
+
+                                    $updated = $existing->map(function ($row) use ($fresh) {
+                                        $key = $row['key'] ?? null;
+                                        if ($key && isset($fresh[$key]['description'])) {
+                                            $row['description'] = $fresh[$key]['description'];
+                                        }
+
+                                        return $row;
+                                    });
+
+                                    $set('variations', $updated->values()->all());
+                                    $set('variations_generated', true);
+                                    $set('variations_ready', true);
+
                                     return;
                                 }
 
