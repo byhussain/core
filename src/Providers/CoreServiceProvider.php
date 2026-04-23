@@ -181,14 +181,20 @@ class CoreServiceProvider extends ServiceProvider
     {
         $pivotColumns = [];
 
-        if (Schema::hasTable('store_user')) {
-            if (Schema::hasColumn('store_user', 'cash_in_hand')) {
-                $pivotColumns[] = 'cash_in_hand';
-            }
+        try {
+            if (Schema::hasTable('store_user')) {
+                if (Schema::hasColumn('store_user', 'cash_in_hand')) {
+                    $pivotColumns[] = 'cash_in_hand';
+                }
 
-            if (Schema::hasColumn('store_user', 'role_id')) {
-                $pivotColumns[] = 'role_id';
+                if (Schema::hasColumn('store_user', 'role_id')) {
+                    $pivotColumns[] = 'role_id';
+                }
             }
+        } catch (\Throwable) {
+            // Database may not be available during build-time commands (e.g. NativePHP
+            // publish runs `php artisan package:discover` before the SQLite file exists).
+            // Return empty pivot columns — relations will work without them at that stage.
         }
 
         return $pivotColumns;
