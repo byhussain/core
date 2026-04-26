@@ -74,6 +74,16 @@ class TransactionsRelationManager extends RelationManager
                     }),
                 TextColumn::make('note')
                     ->placeholder('—')
+                    ->formatStateUsing(function (Transaction $record): ?string {
+                        $note = $record->note;
+                        $headerNote = filled($record->header_note) ? $record->header_note : null;
+
+                        if (filled($note) && filled($headerNote)) {
+                            return $note.' — '.$headerNote;
+                        }
+
+                        return $note ?: $headerNote;
+                    })
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->where(function (Builder $q) use ($search): void {
                             $q->where('note', 'like', "%{$search}%")
