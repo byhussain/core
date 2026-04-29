@@ -117,7 +117,7 @@ class EditSale extends EditRecord
                     $discountType = 'percentage';
                 }
                 $discountPercentage = $saleVariationRow->discount_percentage ?? null;
-                $unitDiscount = $qty != 0 ? round((float) $discount / (float) $qty, 2) : 0;
+                $unitDiscount = $qty != 0 ? (round((float) $discount / (float) $qty, 2) ?: 0) : 0;
 
                 // Determine sequence for this variation_id instance
                 // Sequence is per variation_id, so we track it per variation_id
@@ -147,7 +147,7 @@ class EditSale extends EditRecord
                     $itemDiscountPercentage = $item->discount_percentage ?? null;
                     $itemDiscount = (float) ($item->discount ?? 0);
                     $itemQuantity = (float) ($item->quantity ?? 1);
-                    $itemUnitDiscount = $itemQuantity != 0 ? round($itemDiscount / $itemQuantity, 2) : 0;
+                    $itemUnitDiscount = $itemQuantity != 0 ? (round($itemDiscount / $itemQuantity, 2) ?: 0) : 0;
                     $itemDisc = $itemDiscountType === 'percentage' && $itemDiscountPercentage !== null
                         ? SaleForm::formatPercentage((float) $itemDiscountPercentage)
                         : SaleForm::formatNumberForState($itemDiscount);
@@ -229,7 +229,7 @@ class EditSale extends EditRecord
             $discountPercentage = $row->discount_percentage ?? null;
             $discountAmount = (float) ($row->discount ?? 0) / $multiplier;
             $quantity = (float) ($row->quantity ?? 1);
-            $unitDiscount = $quantity != 0 ? round($discountAmount / $quantity, 2) : 0;
+            $unitDiscount = $quantity != 0 ? (round($discountAmount / $quantity, 2) ?: 0) : 0;
 
             $discountDisplay = $discountType === 'percentage' && $discountPercentage !== null
                 ? SaleForm::formatPercentage((float) $discountPercentage)
@@ -351,7 +351,7 @@ class EditSale extends EditRecord
                 }
 
                 $discountPercentage = $firstRow->discount_percentage ?? null;
-                $unitDiscount = $quantity != 0 ? round($discountAmount / $quantity, 2) : 0;
+                $unitDiscount = $quantity != 0 ? (round($discountAmount / $quantity, 2) ?: 0) : 0;
                 $discountDisplay = $discountType === 'percentage' && $discountPercentage !== null
                     ? SaleForm::formatPercentage((float) $discountPercentage)
                     : SaleForm::formatNumberForState((float) $discountAmount);
