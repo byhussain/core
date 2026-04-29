@@ -11,6 +11,33 @@ There is no `artisan` binary here. Do not run `php artisan` commands in this dir
 
 ---
 
+## How Issues Flow Into This Repo
+
+Issues are almost always reported against **SMART-TiLL** or **SMART-TiLL-POS** — not against `core` directly. But many of those issues are actually caused by code that lives here.
+
+### The fix workflow
+
+1. An issue is raised in SMART-TiLL or SMART-TiLL-POS
+2. You trace the broken code to `vendor/smart-till/core/src/` in that app
+3. The real source is **here** (`../core/src/`) — fix it here, not in vendor
+4. Write a test here in `tests/` that proves the fix — this is the only place core tests live
+
+### Never fix in vendor
+
+`vendor/smart-till/core/` inside SMART-TiLL or SMART-TiLL-POS is a **read-only copy** — it is overwritten by `composer install`. Any fix there is permanently lost. Always fix in this repo (`../core/src/`).
+
+### Context differences between host apps
+
+| Concern | SMART-TiLL | SMART-TiLL-POS |
+|---|---|---|
+| Database | MySQL | SQLite |
+| Environment | Cloud / online | Desktop / offline |
+| Extra packages | Horizon, Nightwatch, Telescope | NativePHP |
+
+When fixing something in `core`, ensure the fix works for **both** host apps. SQLite-incompatible code (MySQL-specific queries, unsupported index operations) will break SMART-TiLL-POS even if it works fine on SMART-TiLL.
+
+---
+
 ## Package Stack
 
 | Package | Version |
