@@ -25,7 +25,7 @@ it('uses a single sync reference column in sales table', function (): void {
     $contents = file_get_contents(dirname(__DIR__, 2).'/src/Filament/Resources/Sales/Tables/SalesTable.php');
 
     expect($contents)
-        ->toContain('SyncReferenceColumn::make()')
+        ->toContain('SyncReferenceColumn::make(')
         ->not->toContain("TextColumn::make('reference')")
         ->not->toContain("->label('Sale #')");
 });

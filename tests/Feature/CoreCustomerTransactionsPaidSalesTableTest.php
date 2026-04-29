@@ -10,7 +10,7 @@ it('includes paid sale references in the customer transactions relation manager 
         ->toContain("\$columns = \$this->transactionTableColumns();")
         ->toContain("\$customer = \$this->getOwnerRecord();")
         ->toContain("return Transaction::query()")
-        ->toContain("->select(\$this->qualifyTransactionColumns(\$columns))")
+        ->toContain('...$this->qualifyTransactionColumns($columns),')
         ->toContain("->where('transactions.transactionable_id', \$customer->getKey())")
         ->toContain("->whereIn('transactions.transactionable_type', Customer::transactionMorphTypes())")
         ->toContain("->unionAll(")

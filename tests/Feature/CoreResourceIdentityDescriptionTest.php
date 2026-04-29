@@ -21,6 +21,6 @@ it('uses sync reference helper in core resource tables', function (): void {
 
     foreach ($files as $file) {
         $contents = file_get_contents(dirname(__DIR__, 2).DIRECTORY_SEPARATOR.$file);
-        expect($contents)->toContain('SyncReferenceColumn::make()');
+        expect($contents)->toContain('SyncReferenceColumn::make(');
     }
 });

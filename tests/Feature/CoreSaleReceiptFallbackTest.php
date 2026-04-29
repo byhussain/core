@@ -5,7 +5,7 @@ it('uses reference fallback in sale form redirect for public receipt route', fun
 
     expect($contents)
         ->toContain('$receiptReference = (string) ($sale->reference ?: ($sale->local_id ?: $sale->id));')
-        ->toContain("'reference' => $receiptReference");
+        ->toContain("'reference' => \$receiptReference,");
 });
 
 it('resolves public receipt by reference then local_id then numeric id', function (): void {
