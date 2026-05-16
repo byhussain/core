@@ -2689,7 +2689,7 @@ class SaleForm
     private static function buildSaleAttributes(array $state, $status, float $discountAmount, $paymentStatus, $paymentMethod): array
     {
         return [
-            'customer_id' => $state['customer_id'] ?? null,
+            'customer_id' => self::sanitizeCustomerId($state['customer_id'] ?? null),
             'payment_status' => $paymentStatus,
             'payment_method' => $paymentMethod,
             'use_fbr' => $state['use_fbr'] ?? false,
@@ -2704,6 +2704,35 @@ class SaleForm
             'header_note' => $state['header_note'] ?? null,
             'footer_note' => $state['footer_note'] ?? null,
         ];
+    }
+
+    /**
+     * Normalize a customer_id value coming from the Filament form state into
+     * either a valid existing customer id, or NULL. Required because:
+     *
+     *  1. Filament Select can report an empty string `''` instead of NULL when
+     *     the form was hydrated from an unusual state (Livewire reload, etc.).
+     *     SQLite then binds `''` to the integer FK column and reports
+     *     "FOREIGN KEY constraint failed" — NULL would have been accepted.
+     *  2. On the desktop POS the referenced customer may have been removed
+     *     by cloud sync between the time the form opened and the user saved.
+     *     Writing a stale ID would also trip the FK. Falling back to NULL
+     *     turns it into a walk-in sale rather than a hard error.
+     */
+    private static function sanitizeCustomerId(mixed $value): ?int
+    {
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $id = (int) $value;
+        if ($id <= 0) {
+            return null;
+        }
+
+        $exists = \SmartTill\Core\Models\Customer::query()->whereKey($id)->exists();
+
+        return $exists ? $id : null;
     }
 
     /** Build DB rows for regular (non-preparable, non-custom) variations. */
