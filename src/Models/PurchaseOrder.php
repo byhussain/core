@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use SmartTill\Core\Casts\PriceCast;
 use SmartTill\Core\Enums\PurchaseOrderStatus;
+use SmartTill\Core\Support\CloudSyncFlagger;
 use SmartTill\Core\Traits\HasStoreScopedReference;
 
 class PurchaseOrder extends Model
@@ -125,6 +126,8 @@ class PurchaseOrder extends Model
             'total_requested_supplier_price' => round($totalRequestedSupplierPrice, $decimalPlaces),
             'total_received_supplier_price' => round($totalReceivedSupplierPrice, $decimalPlaces),
         ])->saveQuietly();
+
+        CloudSyncFlagger::flag($this);
     }
 
     public function calculateRequestedSupplierTotal(): float

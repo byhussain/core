@@ -18,6 +18,7 @@ use SmartTill\Core\Models\Sale;
 use SmartTill\Core\Models\SalePreparableItem;
 use SmartTill\Core\Models\Stock;
 use SmartTill\Core\Models\Variation;
+use SmartTill\Core\Support\CloudSyncFlagger;
 
 class SaleTransactionService
 {
@@ -322,6 +323,7 @@ class SaleTransactionService
                 if ($barcode) {
                     $barcode->stock = (float) $barcode->stock - $quantity;
                     $barcode->saveQuietly();
+                    CloudSyncFlagger::flag($barcode);
                 }
             }
         }
@@ -411,6 +413,7 @@ class SaleTransactionService
 
             $barcode->stock = (float) $barcode->stock - $takeQuantity;
             $barcode->saveQuietly();
+            CloudSyncFlagger::flag($barcode);
 
             $lastBalance = $newBalance;
             $remaining -= $take;
@@ -495,6 +498,7 @@ class SaleTransactionService
                 if ($barcode) {
                     $barcode->stock = (float) $barcode->stock - $totalQuantity;
                     $barcode->saveQuietly();
+                    CloudSyncFlagger::flag($barcode);
                 }
             }
         }
@@ -536,6 +540,7 @@ class SaleTransactionService
                 if ($barcode) {
                     $barcode->stock = (float) $barcode->stock + $quantity;
                     $barcode->saveQuietly();
+                    CloudSyncFlagger::flag($barcode);
                 }
             }
         }
@@ -596,6 +601,7 @@ class SaleTransactionService
                 if ($barcode) {
                     $barcode->stock = (float) $barcode->stock + $restoreQty;
                     $barcode->saveQuietly();
+                    CloudSyncFlagger::flag($barcode);
                 }
             }
         }
@@ -785,6 +791,7 @@ class SaleTransactionService
             $calculated += $tx->quantity ?? 0;
             $tx->quantity_balance = $calculated;
             $tx->saveQuietly();
+            CloudSyncFlagger::flag($tx);
         }
     }
 
@@ -801,6 +808,7 @@ class SaleTransactionService
             $calculated += $tx->amount ?? 0;
             $tx->amount_balance = $calculated;
             $tx->saveQuietly();
+            CloudSyncFlagger::flag($tx);
         }
     }
 

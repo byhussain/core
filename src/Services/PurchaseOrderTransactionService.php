@@ -8,6 +8,7 @@ use SmartTill\Core\Enums\PurchaseOrderStatus;
 use SmartTill\Core\Models\PurchaseOrder;
 use SmartTill\Core\Models\Stock;
 use SmartTill\Core\Models\Unit;
+use SmartTill\Core\Support\CloudSyncFlagger;
 
 class PurchaseOrderTransactionService
 {
@@ -106,6 +107,7 @@ class PurchaseOrderTransactionService
                     $barcode->unit_id = $variation->unit_id;
                     $barcode->stock = (float) $barcode->stock + $normalizedQty;
                     $barcode->saveQuietly();
+                    CloudSyncFlagger::flag($barcode);
 
                     $lastVariationBalance = $variation->transactions()->latest('id')->value('quantity_balance') ?? 0;
                     $newVariationBalance = $lastVariationBalance + $normalizedQty; // stock in increases balance
@@ -164,6 +166,7 @@ class PurchaseOrderTransactionService
                         if ($stock) {
                             $stock->stock = (float) $stock->stock - $quantity;
                             $stock->saveQuietly();
+                            CloudSyncFlagger::flag($stock);
                         }
                     }
 
