@@ -217,7 +217,19 @@ class SaleForm
                                             ->hiddenLabel(),
                                         TextInput::make('quantity')
                                             ->rule('not_in:0')
-                                            ->numeric()
+                                            // Intentionally NOT `->numeric()`:
+                                            // that renders the field as
+                                            // <input type="number">, which on
+                                            // desktop browsers ships built-in
+                                            // up/down spinners + wheel-scroll +
+                                            // arrow-key increments. Cashiers
+                                            // accidentally bumped quantity by 1
+                                            // with the mouse wheel mid-checkout.
+                                            // As a plain text input the field
+                                            // still accepts numeric entry (the
+                                            // afterStateUpdated handler below
+                                            // coerces via (float)), without any
+                                            // of the spinner ergonomics firing.
                                             ->placeholder('Qty')
                                             ->live(onBlur: true)
                                             ->extraInputAttributes([
