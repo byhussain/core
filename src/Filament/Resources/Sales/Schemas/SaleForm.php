@@ -215,21 +215,25 @@ class SaleForm
                                         Hidden::make('discount_amount'), // Store the calculated discount amount
                                         TextEntry::make('description')
                                             ->hiddenLabel(),
+                                        // NOTE: every numeric input in this
+                                        // SaleForm intentionally omits
+                                        // `->numeric()`. Filament's
+                                        // `->numeric()` renders the field as
+                                        // <input type="number">, which on
+                                        // desktop browsers ships built-in
+                                        // up/down spinners + mouse-wheel
+                                        // increments + arrow-key step.
+                                        // Cashiers accidentally bumped
+                                        // quantity / price / total by 1 with
+                                        // the wheel mid-checkout. As plain
+                                        // text inputs these fields still
+                                        // accept numeric entry — each one's
+                                        // afterStateUpdated handler coerces
+                                        // via (float) / formatNumberForState
+                                        // — without any spinner ergonomics
+                                        // firing.
                                         TextInput::make('quantity')
                                             ->rule('not_in:0')
-                                            // Intentionally NOT `->numeric()`:
-                                            // that renders the field as
-                                            // <input type="number">, which on
-                                            // desktop browsers ships built-in
-                                            // up/down spinners + wheel-scroll +
-                                            // arrow-key increments. Cashiers
-                                            // accidentally bumped quantity by 1
-                                            // with the mouse wheel mid-checkout.
-                                            // As a plain text input the field
-                                            // still accepts numeric entry (the
-                                            // afterStateUpdated handler below
-                                            // coerces via (float)), without any
-                                            // of the spinner ergonomics firing.
                                             ->placeholder('Qty')
                                             ->live(onBlur: true)
                                             ->extraInputAttributes([
@@ -258,7 +262,6 @@ class SaleForm
                                                 SaleForm::recalcLine($get, $set);
                                             }),
                                         TextInput::make('unit_price')
-                                            ->numeric()
                                             ->inputMode('decimal')
                                             ->step('0.01')
                                             ->reactive()
@@ -318,7 +321,6 @@ class SaleForm
                                             }),
                                         TextInput::make('total')
                                             ->placeholder('Total')
-                                            ->numeric()
                                             ->live(onBlur: true)
                                             ->extraInputAttributes([
                                                 'class' => 'text-xs py-0.5 px-1.5 h-7',
@@ -386,7 +388,6 @@ class SaleForm
                                             ->default('Sample Preparable Product'),
                                         TextInput::make('qty')
                                             ->label('Qty')
-                                            ->numeric()
                                             ->default(1)
                                             ->live(onBlur: true)
                                             ->extraInputAttributes([
@@ -430,7 +431,6 @@ class SaleForm
                                             }),
                                         TextInput::make('price')
                                             ->label('Price')
-                                            ->numeric()
                                             ->default(100.00)
                                             ->live(onBlur: true)
                                             ->extraInputAttributes([
@@ -497,7 +497,6 @@ class SaleForm
                                             }),
                                         TextInput::make('total')
                                             ->label('Total')
-                                            ->numeric()
                                             ->default(100.00)
                                             ->live(onBlur: true)
                                             ->extraInputAttributes([
@@ -579,8 +578,7 @@ class SaleForm
                                                     ->default('Nested Product Item'),
                                                 TextInput::make('quantity')
                                                     ->label('Quantity')
-                                                    ->numeric()
-                                                    ->default(1)
+                                                            ->default(1)
                                                     ->reactive()
                                                     ->live(onBlur: true)
                                                     ->extraInputAttributes([
@@ -630,8 +628,7 @@ class SaleForm
                                                     }),
                                                 TextInput::make('unit_price')
                                                     ->label('Price')
-                                                    ->numeric()
-                                                    ->inputMode('decimal')
+                                                            ->inputMode('decimal')
                                                     ->step('0.01')
                                                     ->default(50.00)
                                                     ->reactive()
@@ -695,8 +692,7 @@ class SaleForm
                                                     }),
                                                 TextInput::make('total')
                                                     ->label('Total')
-                                                    ->numeric()
-                                                    ->default(50.00)
+                                                            ->default(50.00)
                                                     ->live(onBlur: true)
                                                     ->extraInputAttributes([
                                                         'class' => 'text-xs py-0.5 px-1.5 h-7',
@@ -813,7 +809,6 @@ class SaleForm
                                             ->live(onBlur: true)
                                             ->inlineLabel()
                                             ->default(0)
-                                            ->numeric()
                                             ->extraInputAttributes([
                                                 'x-on:focus' => '$event.target.select && $event.target.select()',
                                             ])
