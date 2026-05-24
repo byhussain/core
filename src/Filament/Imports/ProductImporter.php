@@ -136,7 +136,8 @@ class ProductImporter extends Importer
                 ->exampleHeader('Price')
                 ->examples(['999.99', '120.00', '2499.00', '499.99', '180.00', '3899.00', '1299.00', '199.99', '1299.99', '1099.00'])
                 ->numeric(decimalPlaces: 2)
-                ->rules(['nullable', 'numeric', 'min:0'])
+                // Negative prices allowed for adjustment / credit markup lines.
+                ->rules(['nullable', 'numeric'])
                 ->fillRecordUsing(function ($record, $state) {
                     return $record;
                 }),
@@ -146,7 +147,7 @@ class ProductImporter extends Importer
                 ->exampleHeader('Sale Price')
                 ->examples(['899.99', '99.99', '2199.00', '399.99', '150.00', '3499.00', '1099.00', '159.99', '999.99', '899.00'])
                 ->numeric(decimalPlaces: 2)
-                ->rules(['nullable', 'numeric', 'min:0'])
+                ->rules(['nullable', 'numeric'])
                 ->fillRecordUsing(function ($record, $state) {
                     return $record;
                 }),

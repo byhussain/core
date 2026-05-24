@@ -71,7 +71,13 @@ class VariationForm
                                             $set('price', $price);
                                         }
 
-                                        if ($price === null || $price <= 0) {
+                                        // Treat only "no price" and exact zero as a reason to
+                                        // wipe the sale fields. Negative prices ARE allowed
+                                        // (rare, but useful for adjustment lines and credit
+                                        // markups); they just need a non-zero base so the
+                                        // sale_percentage division below doesn't divide by
+                                        // zero.
+                                        if ($price === null || (float) $price === 0.0) {
                                             $set('sale_price', null);
                                             $set('sale_percentage', null);
 
@@ -128,13 +134,17 @@ class VariationForm
                                     ->numeric()
                                     ->inputMode('decimal')
                                     ->step('0.000001')
-                                    ->minValue(0)
+                                    // Allow the full ±999.999999 range so users can enter
+                                    // negative percentages — a -10% "discount" becomes a
+                                    // 10% markup on the sale price. Useful for surcharges
+                                    // (currency adjustment, freight pass-through, etc.).
+                                    ->minValue(-999.999999)
                                     ->maxValue(999.999999)
-                                    ->rule('regex:/^\\d{1,3}(\\.\\d{1,6})?$/')
+                                    ->rule('regex:/^-?\\d{1,3}(\\.\\d{1,6})?$/')
                                     ->validationMessages([
                                         'max' => 'Percentage cannot exceed 999.999999%.',
-                                        'min' => 'Percentage cannot be negative.',
-                                        'regex' => 'Please enter a valid percentage (e.g., 10.5 or 99.999999).',
+                                        'min' => 'Percentage cannot go below -999.999999%.',
+                                        'regex' => 'Please enter a valid percentage (e.g., 10.5, -10 or 99.999999).',
                                     ])
                                     ->live(onBlur: true)
                                     ->afterStateUpdated(function (mixed $state, $set, $get, $record): void {
@@ -142,8 +152,8 @@ class VariationForm
                                             return;
                                         }
                                         $salePerc = round((float) $state, 6);
-                                        // Clamp to valid range
-                                        $salePerc = max(0, min(999.999999, $salePerc));
+                                        // Clamp to the new ±999.999999 range.
+                                        $salePerc = max(-999.999999, min(999.999999, $salePerc));
                                         if ((float) $state !== $salePerc) {
                                             $set('sale_percentage', $salePerc);
                                         }

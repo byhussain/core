@@ -39,12 +39,15 @@ class VariationPricingImporter extends Importer
                 ->exampleHeader('Price')
                 ->numeric()
                 ->requiredMapping()
-                ->rules(['required', 'numeric', 'min:0']),
+                // Negative prices are allowed (e.g., adjustment / credit
+                // markup lines). Removed the `min:0` rule that previously
+                // rejected the entire row.
+                ->rules(['required', 'numeric']),
             ImportColumn::make('sale_price')
                 ->label('Sale Price')
                 ->exampleHeader('Sale Price')
                 ->numeric()
-                ->rules(['nullable', 'numeric', 'min:0'])
+                ->rules(['nullable', 'numeric'])
                 ->fillRecordUsing(function (Variation $record, $state): void {
                     if ($state === null || $state === '') {
                         $record->sale_price = null;

@@ -43,7 +43,8 @@ class VariationStockImporter extends Importer
                 ->exampleHeader('Price')
                 ->numeric()
                 ->requiredMapping()
-                ->rules(['required', 'numeric', 'min:0']),
+                // Negative prices allowed for adjustment / credit markup lines.
+                ->rules(['required', 'numeric']),
             ImportColumn::make('supplier_price')
                 ->label('Supplier Price')
                 ->exampleHeader('Supplier Price')
