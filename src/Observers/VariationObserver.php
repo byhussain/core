@@ -4,6 +4,7 @@ namespace SmartTill\Core\Observers;
 
 use Illuminate\Support\Facades\Cache;
 use SmartTill\Core\Models\Variation;
+use SmartTill\Core\Services\VariationDefaultStockService;
 
 class VariationObserver
 {
@@ -15,6 +16,7 @@ class VariationObserver
 
     public function created(Variation $variation): void
     {
+        $this->ensureDefaultStock($variation);
         $this->invalidateProductSearchCache($variation->store_id);
         $this->invalidateVariationCache($variation);
     }
@@ -83,6 +85,18 @@ class VariationObserver
             $variation->sale_price = $price;
             $variation->sale_percentage = 0;
         }
+    }
+
+    /**
+     * Give every freshly-created variation a default zero-quantity stock row
+     * so it immediately shows up in stock listings, the POS, and reports
+     * without the user having to add stock manually first. The stock starts
+     * at 0, so StockObserver records no opening movement. Delegates to the
+     * shared service so this matches the legacy backfill command exactly.
+     */
+    protected function ensureDefaultStock(Variation $variation): void
+    {
+        app(VariationDefaultStockService::class)->createFor($variation);
     }
 
     protected function invalidateProductSearchCache(int $storeId): void

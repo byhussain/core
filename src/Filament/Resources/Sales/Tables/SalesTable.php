@@ -11,13 +11,17 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ExportBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\Indicator;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use SmartTill\Core\Enums\SalePaymentStatus;
 use SmartTill\Core\Enums\SaleStatus;
@@ -68,10 +72,9 @@ class SalesTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
                     ->label('Created at')
-                    ->since()
+                    ->dateTime('M d, Y g:i A')
                     ->timezone(fn () => Filament::getTenant()?->timezone?->name ?? 'UTC')
                     ->sortable()
-                    ->tooltip(fn ($record) => $record->created_at?->setTimezone(Filament::getTenant()?->timezone?->name ?? 'UTC')->format('M d, Y g:i A'))
                     ->toggleable(),
             ])
             ->defaultSort('id', 'desc')
@@ -86,6 +89,63 @@ class SalesTable
                         ->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()])
                         ->toArray())
                     ->multiple(),
+                Filter::make('created_at')
+                    ->label('Sale date')
+                    ->schema([
+                        DatePicker::make('created_from')
+                            ->label('From date')
+                            ->native(false)
+                            ->closeOnDateSelection()
+                            ->maxDate(fn (callable $get) => $get('created_until') ?: now()),
+                        DatePicker::make('created_until')
+                            ->label('To date')
+                            ->native(false)
+                            ->closeOnDateSelection()
+                            ->minDate(fn (callable $get) => $get('created_from'))
+                            ->maxDate(now()),
+                    ])
+                    ->columns(2)
+                    // The user picks plain dates in their store's timezone, but
+                    // created_at is stored in UTC. Anchor each bound to the
+                    // start/end of the chosen day in the store timezone, then
+                    // convert to UTC so the boundary days are fully included.
+                    ->query(function (Builder $query, array $data): Builder {
+                        $timezone = Filament::getTenant()?->timezone?->name ?? 'UTC';
+
+                        return $query
+                            ->when(
+                                $data['created_from'] ?? null,
+                                fn (Builder $query, $date): Builder => $query->where(
+                                    'created_at',
+                                    '>=',
+                                    Carbon::parse($date, $timezone)->startOfDay()->utc(),
+                                ),
+                            )
+                            ->when(
+                                $data['created_until'] ?? null,
+                                fn (Builder $query, $date): Builder => $query->where(
+                                    'created_at',
+                                    '<=',
+                                    Carbon::parse($date, $timezone)->endOfDay()->utc(),
+                                ),
+                            );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $timezone = Filament::getTenant()?->timezone?->name ?? 'UTC';
+                        $indicators = [];
+
+                        if ($data['created_from'] ?? null) {
+                            $indicators[] = Indicator::make('From '.Carbon::parse($data['created_from'], $timezone)->toFormattedDateString())
+                                ->removeField('created_from');
+                        }
+
+                        if ($data['created_until'] ?? null) {
+                            $indicators[] = Indicator::make('Until '.Carbon::parse($data['created_until'], $timezone)->toFormattedDateString())
+                                ->removeField('created_until');
+                        }
+
+                        return $indicators;
+                    }),
             ])
             ->recordActions([
                 ActionGroup::make([

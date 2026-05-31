@@ -542,18 +542,32 @@ class StocksRelationManager extends RelationManager
 
     private function getStockUnitOptions(): array
     {
+        $storeId = Filament::getTenant()?->getKey();
         $variation = $this->getOwnerRecord();
-        $dimensionId = $variation?->unit?->dimension_id;
-        if (! $dimensionId) {
-            return [];
+        $variationUnit = $variation?->unit;
+        $dimensionId = $variationUnit?->dimension_id;
+
+        $query = Unit::query()->forStoreOrGlobal($storeId);
+
+        // When the variation already has a unit, list every unit that shares
+        // its dimension so the entered stock can be converted back to the
+        // variation's base unit. When the variation has no unit yet, fall
+        // back to listing all available units instead of an empty dropdown.
+        if ($dimensionId) {
+            $query->where('dimension_id', $dimensionId);
         }
 
-        return Unit::query()
-            ->forStoreOrGlobal(Filament::getTenant()?->getKey())
-            ->where('dimension_id', $dimensionId)
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->toArray();
+        $options = $query->orderBy('name')->pluck('name', 'id')->toArray();
+
+        // Guarantee the variation's own unit is always selectable, otherwise
+        // the pre-selected value would render as the raw unit ID instead of
+        // the unit name (Filament shows the bare state when it can't map it
+        // to an option label).
+        if ($variationUnit && ! array_key_exists($variationUnit->id, $options)) {
+            $options[$variationUnit->id] = $variationUnit->name;
+        }
+
+        return $options;
     }
 
     private function normalizeStockUnit(array $data): array

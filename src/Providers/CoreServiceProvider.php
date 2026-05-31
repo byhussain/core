@@ -2,15 +2,19 @@
 
 namespace SmartTill\Core\Providers;
 
+use App\Models\Store;
 use App\Models\Store as AppStore;
 use App\Models\User as AppUser;
+use App\Observers\StoreObserver;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use SmartTill\Core\Console\Commands\BackfillVariationStocksCommand;
 use SmartTill\Core\Console\Commands\CoreInstallCommand;
 use SmartTill\Core\Console\Commands\NativeCoreInstallCommand;
+use SmartTill\Core\Livewire\ProductSearch;
 use SmartTill\Core\Models\Attribute;
 use SmartTill\Core\Models\Brand;
 use SmartTill\Core\Models\Category;
@@ -22,6 +26,7 @@ use SmartTill\Core\Models\Product;
 use SmartTill\Core\Models\ProductAttribute;
 use SmartTill\Core\Models\PurchaseOrder;
 use SmartTill\Core\Models\PurchaseOrderProduct;
+use SmartTill\Core\Models\Role;
 use SmartTill\Core\Models\Sale;
 use SmartTill\Core\Models\SalePreparableItem;
 use SmartTill\Core\Models\SaleVariation;
@@ -46,7 +51,6 @@ use SmartTill\Core\Services\CoreAccessBootstrapService;
 use SmartTill\Core\Services\CoreGeoBootstrapService;
 use SmartTill\Core\Services\CoreStoreSettingsService;
 use SmartTill\Core\Services\CoreUnitBootstrapService;
-use SmartTill\Core\Models\Role;
 
 class CoreServiceProvider extends ServiceProvider
 {
@@ -60,6 +64,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->commands([
             CoreInstallCommand::class,
             NativeCoreInstallCommand::class,
+            BackfillVariationStocksCommand::class,
         ]);
     }
 
@@ -71,7 +76,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->registerPackageRoutes();
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'smart-core');
-        Livewire::component('product-search', \SmartTill\Core\Livewire\ProductSearch::class);
+        Livewire::component('product-search', ProductSearch::class);
 
         Attribute::observe(AttributeObserver::class);
         Unit::observe(UnitObserver::class);
@@ -98,8 +103,8 @@ class CoreServiceProvider extends ServiceProvider
         Variation::observe(StoreScopedReferenceObserver::class);
         StoreSetting::observe(StoreScopedReferenceObserver::class);
 
-        if (class_exists(\App\Models\Store::class) && ! class_exists(\App\Observers\StoreObserver::class)) {
-            \App\Models\Store::observe(\SmartTill\Core\Observers\StoreObserver::class);
+        if (class_exists(Store::class) && ! class_exists(StoreObserver::class)) {
+            Store::observe(\SmartTill\Core\Observers\StoreObserver::class);
         }
     }
 
