@@ -20,11 +20,11 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
-use SmartTill\Core\Models\Customer;
 use League\Csv\Bom;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
@@ -32,7 +32,9 @@ use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
 use SmartTill\Core\Enums\PaymentMethod;
 use SmartTill\Core\Enums\SalePaymentStatus;
 use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
+use SmartTill\Core\Filament\Resources\Sales\SaleResource;
 use SmartTill\Core\Filament\Resources\Transactions\Tables\TransactionsTable;
+use SmartTill\Core\Models\Customer;
 use SmartTill\Core\Models\Sale;
 use SmartTill\Core\Models\Transaction;
 use SmartTill\Core\Services\PaymentService;
@@ -67,7 +69,7 @@ class TransactionsRelationManager extends RelationManager
                     ->formatStateUsing(fn (Transaction $record) => $record->referenceable?->reference ?? $record->referenceable_id)
                     ->url(function (Transaction $record): ?string {
                         if ($record->referenceable instanceof Sale) {
-                            return \SmartTill\Core\Filament\Resources\Sales\SaleResource::getUrl('view', ['record' => $record->referenceable]);
+                            return SaleResource::getUrl('view', ['record' => $record->referenceable]);
                         }
 
                         return null;
@@ -178,8 +180,8 @@ class TransactionsRelationManager extends RelationManager
                                     ->enum(PaymentMethod::class),
                                 Textarea::make('note')
                                     ->label('Note')
-                                    ->maxLength(50)
-                                    ->helperText('Up to 50 characters.')
+                                    ->maxLength(255)
+                                    ->helperText('Up to 255 characters.')
                                     ->columnSpanFull(),
                             ]),
                     ])
@@ -251,7 +253,7 @@ class TransactionsRelationManager extends RelationManager
     protected function includePaidSalesInTableQuery(Builder $query): Builder
     {
         $columns = $this->transactionTableColumns();
-        /** @var \SmartTill\Core\Models\Customer $customer */
+        /** @var Customer $customer */
         $customer = $this->getOwnerRecord();
 
         $transactionsBaseQuery = Transaction::query()
@@ -400,7 +402,7 @@ class TransactionsRelationManager extends RelationManager
 
     protected function getPaidSalesQueryForExport(): HasMany
     {
-        /** @var \SmartTill\Core\Models\Customer $customer */
+        /** @var Customer $customer */
         $customer = $this->getOwnerRecord();
 
         return $customer->sales()
@@ -414,7 +416,7 @@ class TransactionsRelationManager extends RelationManager
      */
     protected function getPaidSalesQueryForTable(array $columns): HasMany
     {
-        /** @var \SmartTill\Core\Models\Customer $customer */
+        /** @var Customer $customer */
         $customer = $this->getOwnerRecord();
 
         $query = $customer->sales()
@@ -494,7 +496,7 @@ class TransactionsRelationManager extends RelationManager
         return $transaction->id <= $sale->id;
     }
 
-    protected function saleLedgerTimestamp(Sale $sale): ?\Illuminate\Support\Carbon
+    protected function saleLedgerTimestamp(Sale $sale): ?Carbon
     {
         return $sale->paid_at ?? $sale->created_at;
     }

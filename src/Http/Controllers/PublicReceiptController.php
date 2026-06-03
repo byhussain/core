@@ -6,13 +6,18 @@ use App\Models\Store;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use SmartTill\Core\Http\Concerns\AppliesStoreTimezone;
 use SmartTill\Core\Models\Sale;
 
 class PublicReceiptController
 {
+    use AppliesStoreTimezone;
+
     public function __invoke(Request $request, string $store, string $reference): View
     {
         $storeModel = $this->resolveStore($store);
+        $storeModel->loadMissing('timezone');
+        $this->applyStoreTimezone($storeModel->timezone?->name);
 
         $sale = Sale::query()
             ->where('store_id', $storeModel->id)
@@ -71,9 +76,9 @@ class PublicReceiptController
 
     private function resolveStore(string $store): Store
     {
-        $table = (new Store())->getTable();
+        $table = (new Store)->getTable();
         $query = Store::query();
-        $primaryKey = (new Store())->getKeyName();
+        $primaryKey = (new Store)->getKeyName();
 
         if (Schema::hasColumn($table, 'slug')) {
             $query->where('slug', $store)->orWhere($primaryKey, $store);

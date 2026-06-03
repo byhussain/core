@@ -4,10 +4,13 @@ namespace SmartTill\Core\Http\Controllers;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use SmartTill\Core\Http\Concerns\AppliesStoreTimezone;
 use SmartTill\Core\Models\Payment;
 
 class PublicPaymentReceiptController
 {
+    use AppliesStoreTimezone;
+
     public function __invoke(Request $request, Payment $payment): View
     {
         $next = $request->query('next');
@@ -28,6 +31,8 @@ class PublicPaymentReceiptController
             'store.currency',
             'store.timezone',
         ]);
+
+        $this->applyStoreTimezone($payment->store?->timezone?->name);
 
         $viewName = view()->exists('print.payment')
             ? 'print.payment'
