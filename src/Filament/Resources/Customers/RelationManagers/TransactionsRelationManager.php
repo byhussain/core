@@ -2,6 +2,7 @@
 
 namespace SmartTill\Core\Filament\Resources\Customers\RelationManagers;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Checkbox;
@@ -246,6 +247,16 @@ class TransactionsRelationManager extends RelationManager
                         $data['format'] ?? 'xlsx',
                         (bool) ($data['include_paid_sales'] ?? false),
                     )),
+                Action::make('downloadLedgerPdf')
+                    ->label('Download Ledger')
+                    ->icon(Heroicon::OutlinedDocumentArrowDown)
+                    ->color('primary')
+                    ->visible(fn () => ResourceCanAccessHelper::check('Export Sales'))
+                    ->authorize(fn () => ResourceCanAccessHelper::check('Export Sales'))
+                    // Direct one-click download — no modal. Paid sales are
+                    // omitted to keep the statement a clean running ledger;
+                    // users who need them can use Export Ledger (Excel/CSV).
+                    ->action(fn (RelationManager $livewire) => $livewire->downloadLedgerPdf()),
             ])
             ->toolbarActions([]);
     }
@@ -350,6 +361,51 @@ class TransactionsRelationManager extends RelationManager
         ]);
     }
 
+    public function downloadLedgerPdf(bool $includePaidSales = false): StreamedResponse
+    {
+        $customer = $this->getOwnerRecord();
+        $store = Filament::getTenant();
+        $timezone = $store?->timezone?->name ?? config('app.timezone', 'UTC');
+        $decimalPlaces = $store?->currency?->decimal_places ?? 2;
+        $currencyCode = $store?->currency?->code ?? 'PKR';
+
+        $rows = iterator_to_array($this->ledgerRows($timezone, $decimalPlaces, $includePaidSales), false);
+
+        // Closing balance = the running balance of the last real ledger row
+        // (paid-sale reference rows carry a '—' balance and are skipped).
+        $closingBalance = Number::format(0, $decimalPlaces);
+        foreach ($rows as $row) {
+            if (($row[5] ?? '—') !== '—') {
+                $closingBalance = $row[5];
+            }
+        }
+
+        $fileBaseName = Str::slug(($store?->name ?: 'store').'-'.($customer->name ?: 'customer').'-ledger-'.now()->format('Y-m-d-His'));
+
+        $pdf = Pdf::loadView('smart-core::pdf.ledger', [
+            'title' => 'Customer Ledger Statement',
+            'storeName' => $store?->business_name ?: $store?->name ?: 'Store',
+            'storeAddress' => $store?->address,
+            'storePhone' => $store?->phone,
+            'storeEmail' => $store?->email,
+            'partyName' => $customer->name ?: '—',
+            'partyPhone' => $customer->phone,
+            'partyEmail' => $customer->email,
+            'generatedAt' => now()->setTimezone($timezone)->format('M d, Y g:i A'),
+            'currencyCode' => $currencyCode,
+            'rows' => $rows,
+            'rowCount' => count($rows),
+            'closingBalance' => $closingBalance,
+            'includePaidSales' => $includePaidSales,
+        ])->setPaper('a4');
+
+        return response()->streamDownload(
+            fn () => print ($pdf->output()),
+            "{$fileBaseName}.pdf",
+            ['Content-Type' => 'application/pdf'],
+        );
+    }
+
     /**
      * @return \Generator<int, array<int, string>>
      */
@@ -374,9 +430,9 @@ class TransactionsRelationManager extends RelationManager
 
             if ($this->shouldYieldTransactionFirst($transaction, $sale)) {
                 yield [
-                    $transaction->created_at?->setTimezone($timezone)->format('M d, Y g:i A'),
+                    $transaction->created_at?->setTimezone($timezone)->format('d-m-Y h:i A'),
                     $this->resolveReferenceSummary($transaction, $referenceCache),
-                    $transaction->note ?: '—',
+                    $this->resolveLedgerNote($transaction->header_note ?? null, $transaction->note),
                     Str::headline((string) $transaction->type),
                     Number::format((float) $transaction->amount, $decimalPlaces),
                     Number::format((float) $transaction->amount_balance, $decimalPlaces),
@@ -388,9 +444,9 @@ class TransactionsRelationManager extends RelationManager
             }
 
             yield [
-                $this->saleLedgerTimestamp($sale)?->setTimezone($timezone)->format('M d, Y g:i A'),
+                $this->saleLedgerTimestamp($sale)?->setTimezone($timezone)->format('d-m-Y h:i A'),
                 $this->resolveSaleReferenceSummary($sale),
-                $sale->note ?: 'Paid sale (informational only)',
+                $this->resolveLedgerNote($sale->header_note ?? null, $sale->note ?: 'Paid sale (informational only)'),
                 'Paid Sale',
                 Number::format((float) $sale->total, $decimalPlaces),
                 '—',
@@ -398,6 +454,19 @@ class TransactionsRelationManager extends RelationManager
 
             $saleIterator->next();
         }
+    }
+
+    /**
+     * Prefer the header note for the ledger Note column; fall back to the
+     * plain note when the header note is empty.
+     */
+    protected function resolveLedgerNote(?string $headerNote, ?string $note): string
+    {
+        if (filled($headerNote)) {
+            return $headerNote;
+        }
+
+        return filled($note) ? $note : '—';
     }
 
     protected function getPaidSalesQueryForExport(): HasMany

@@ -2,6 +2,7 @@
 
 namespace SmartTill\Core\Filament\Resources\Suppliers\RelationManagers;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
@@ -107,7 +108,59 @@ class TransactionsRelationManager extends RelationManager
                             ->native(false),
                     ])
                     ->action(fn (array $data, RelationManager $livewire) => $livewire->downloadLedgerReport($data['format'] ?? 'xlsx')),
+                Action::make('downloadLedgerPdf')
+                    ->label('Download Ledger')
+                    ->icon(Heroicon::OutlinedDocumentArrowDown)
+                    ->color('primary')
+                    ->visible(fn () => ResourceCanAccessHelper::check('Export Sales'))
+                    ->authorize(fn () => ResourceCanAccessHelper::check('Export Sales'))
+                    // Direct one-click download — no modal.
+                    ->action(fn (RelationManager $livewire) => $livewire->downloadLedgerPdf()),
             ]);
+    }
+
+    public function downloadLedgerPdf(): StreamedResponse
+    {
+        $supplier = $this->getOwnerRecord();
+        $store = Filament::getTenant();
+        $timezone = $store?->timezone?->name ?? config('app.timezone', 'UTC');
+        $decimalPlaces = $store?->currency?->decimal_places ?? 2;
+        $currencyCode = $store?->currency?->code ?? 'PKR';
+
+        $rows = iterator_to_array($this->ledgerRows($timezone, $decimalPlaces), false);
+
+        // Closing balance = the running balance of the last ledger row.
+        $closingBalance = Number::format(0, $decimalPlaces);
+        foreach ($rows as $row) {
+            if (($row[5] ?? '—') !== '—') {
+                $closingBalance = $row[5];
+            }
+        }
+
+        $fileBaseName = Str::slug(($store?->name ?: 'store').'-'.($supplier->name ?: 'supplier').'-ledger-'.now()->format('Y-m-d-His'));
+
+        $pdf = Pdf::loadView('smart-core::pdf.ledger', [
+            'title' => 'Supplier Ledger Statement',
+            'storeName' => $store?->business_name ?: $store?->name ?: 'Store',
+            'storeAddress' => $store?->address,
+            'storePhone' => $store?->phone,
+            'storeEmail' => $store?->email,
+            'partyName' => $supplier->name ?: '—',
+            'partyPhone' => $supplier->phone,
+            'partyEmail' => $supplier->email,
+            'generatedAt' => now()->setTimezone($timezone)->format('M d, Y g:i A'),
+            'currencyCode' => $currencyCode,
+            'rows' => $rows,
+            'rowCount' => count($rows),
+            'closingBalance' => $closingBalance,
+            'includePaidSales' => false,
+        ])->setPaper('a4');
+
+        return response()->streamDownload(
+            fn () => print ($pdf->output()),
+            "{$fileBaseName}.pdf",
+            ['Content-Type' => 'application/pdf'],
+        );
     }
 
     public function downloadLedgerReport(string $format): StreamedResponse
@@ -185,14 +238,27 @@ class TransactionsRelationManager extends RelationManager
 
         foreach ($this->getTableQueryForExport()->reorder('created_at')->orderBy('id')->cursor() as $record) {
             yield [
-                $record->created_at?->setTimezone($timezone)->format('M d, Y g:i A'),
+                $record->created_at?->setTimezone($timezone)->format('d-m-Y h:i A'),
                 $this->resolveReferenceSummary($record, $referenceCache),
-                $record->note ?: '—',
+                $this->resolveLedgerNote($record->header_note ?? null, $record->note),
                 Str::headline((string) $record->type),
                 Number::format((float) $record->amount, $decimalPlaces),
                 Number::format((float) $record->amount_balance, $decimalPlaces),
             ];
         }
+    }
+
+    /**
+     * Prefer the header note for the ledger Note column; fall back to the
+     * plain note when the header note is empty.
+     */
+    protected function resolveLedgerNote(?string $headerNote, ?string $note): string
+    {
+        if (filled($headerNote)) {
+            return $headerNote;
+        }
+
+        return filled($note) ? $note : '—';
     }
 
     /**
