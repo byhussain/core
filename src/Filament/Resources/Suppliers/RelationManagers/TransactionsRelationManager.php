@@ -59,8 +59,8 @@ class TransactionsRelationManager extends RelationManager
                                     ->enum(PaymentMethod::class),
                                 Textarea::make('note')
                                     ->label('Note')
-                                    ->maxLength(50)
-                                    ->helperText('Up to 50 characters.')
+                                    ->maxLength(255)
+                                    ->helperText('Up to 255 characters.')
                                     ->columnSpanFull(),
                             ]),
                     ])

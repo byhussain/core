@@ -12,6 +12,7 @@ enum PaymentMethod: string implements HasColor, HasLabel
     case BankTransfer = 'bank_transfer';
     case Cheque = 'cheque';
     case Online = 'online';
+    case Token = 'token';
 
     public function getLabel(): string|Htmlable|null
     {
@@ -20,6 +21,7 @@ enum PaymentMethod: string implements HasColor, HasLabel
             self::BankTransfer => 'Bank Transfer',
             self::Cheque => 'Cheque',
             self::Online => 'Online',
+            self::Token => 'Token',
         };
     }
 
