@@ -34,8 +34,23 @@ class PurchaseOrderTransactionService
             if ($purchaseOrder->supplier) {
                 $supplier = $purchaseOrder->supplier;
                 $lastBalance = $supplier->transactions()->latest('id')->value('amount_balance') ?? 0;
-                $amount = -abs($purchaseOrder->total_received_supplier_price); // supplier_debit is a minus entry
-                $newBalance = $lastBalance + $amount; // supplier_debit decreases balance
+
+                // The supplier is owed the received supplier cost PLUS any
+                // withholding tax the buyer pays on the purchase. recalculateTotals()
+                // (run above) already computed withholding_tax_amount on the
+                // received subtotal.
+                $withholdingTax = (float) $purchaseOrder->withholding_tax_amount;
+                $payable = (float) $purchaseOrder->total_received_supplier_price + $withholdingTax;
+                $amount = -abs($payable); // supplier_credit is a minus entry
+                $newBalance = $lastBalance + $amount; // supplier_credit decreases balance
+
+                // Make the withholding tax visible on the ledger entry instead of
+                // silently bundling it into the amount.
+                $note = 'Purchase order closed: supplier credit';
+                if ($withholdingTax > 0) {
+                    $decimalPlaces = $purchaseOrder->store?->currency?->decimal_places ?? 2;
+                    $note .= ' (incl. withholding tax '.number_format($withholdingTax, $decimalPlaces).')';
+                }
 
                 $supplier->transactions()
                     ->create([
@@ -44,7 +59,7 @@ class PurchaseOrderTransactionService
                         'referenceable_id' => $purchaseOrder->id,
                         'type' => 'supplier_credit',
                         'amount' => $amount,
-                        'note' => 'Purchase order closed: supplier credit',
+                        'note' => $note,
                         'amount_balance' => $newBalance,
                     ]);
             }

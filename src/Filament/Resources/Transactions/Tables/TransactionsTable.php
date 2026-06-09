@@ -139,7 +139,11 @@ class TransactionsTable
             && $record->referenceable instanceof PurchaseOrder
             && in_array($record->type, ['supplier_credit', 'supplier_debit'], true)
         ) {
-            $purchaseOrderAmount = (float) $record->referenceable->calculateReceivedSupplierTotal();
+            // The supplier is owed the received supplier cost PLUS any withholding
+            // tax on the purchase, so the ledger must reflect the grand total
+            // (matching the amount stored on the transaction at close time).
+            $purchaseOrderAmount = (float) $record->referenceable->calculateReceivedSupplierTotal()
+                + (float) $record->referenceable->withholding_tax_amount;
 
             return $record->type === 'supplier_credit'
                 ? -abs($purchaseOrderAmount)

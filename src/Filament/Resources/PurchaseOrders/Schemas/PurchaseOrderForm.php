@@ -4,6 +4,7 @@ namespace SmartTill\Core\Filament\Resources\PurchaseOrders\Schemas;
 
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -11,6 +12,7 @@ use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Number;
 use SmartTill\Core\Filament\Forms\Components\ProductSearchInput;
 use SmartTill\Core\Models\Supplier;
 use SmartTill\Core\Models\Unit;
@@ -704,51 +706,165 @@ class PurchaseOrderForm
                     ->afterHeader([
                     ])
                     ->schema([
-                        TextInput::make('total_requested_quantity')
+                        // The summary figures are computed (by recalcSummaryFromItems
+                        // and on load by the repeater's afterStateHydrated) and stored
+                        // in the total_requested_* state paths. We render them as
+                        // Placeholders rather than disabled inputs so they reliably
+                        // reflect the latest state on every render — a disabled input's
+                        // displayed value is not patched when the value is set
+                        // programmatically (e.g. the first time an item is added).
+                        Placeholder::make('total_requested_quantity_display')
                             ->label('Total Items')
-                            ->disabled()
-                            ->numeric()
-                            ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((int) $state) : '0')
-                            ->required()
+                            ->content(fn (callable $get): string => number_format((int) ($get('total_requested_quantity') ?? 0)))
                             ->columnSpanFull(),
 
-                        TextInput::make('total_requested_tax_amount')
+                        Placeholder::make('total_requested_tax_amount_display')
                             ->label('Total Tax')
-                            ->disabled()
-                            ->prefix(fn ($record) => $record?->store?->currency?->code ?? Filament::getTenant()?->currency->code ?? 'PKR')
-                            ->numeric()
-                            ->inputMode('decimal')
-                            ->step(0.01)
-                            ->rule('regex:/^\\d+(\\.\\d{1,2})?$/')
+                            ->content(fn (callable $get, $record): string => self::formatSummaryMoney($get('total_requested_tax_amount'), $record))
                             ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                             ->columnSpanFull(),
 
-                        TextInput::make('total_requested_unit_price')
+                        Placeholder::make('total_requested_unit_price_display')
                             ->label('Total Unit Price')
-                            ->disabled()
-                            ->prefix(fn ($record) => $record?->store?->currency?->code ?? Filament::getTenant()?->currency->code ?? 'PKR')
-                            ->numeric()
-                            ->inputMode('decimal')
-                            ->step(0.01)
-                            ->rule('regex:/^\\d+(\\.\\d{1,2})?$/')
-                            ->required()
+                            ->content(fn (callable $get, $record): string => self::formatSummaryMoney($get('total_requested_unit_price'), $record))
                             ->columnSpanFull(),
 
-                        TextInput::make('total_requested_supplier_price')
+                        Placeholder::make('total_requested_supplier_price_display')
                             ->label('Total Supplier Cost')
-                            ->disabled()
-                            ->prefix(fn ($record) => $record?->store?->currency?->code ?? Filament::getTenant()?->currency->code ?? 'PKR')
-                            ->numeric()
-                            ->inputMode('decimal')
-                            ->step(0.01)
-                            ->rule('regex:/^\\d+(\\.\\d{1,2})?$/')
-                            ->required()
+                            ->content(fn (callable $get, $record): string => self::formatSummaryMoney($get('total_requested_supplier_price'), $record))
+                            ->columnSpanFull(),
+
+                        // Withholding tax the buyer pays on this purchase. A single
+                        // input accepts either a flat amount (e.g. 50) or a
+                        // percentage of the Total Supplier Cost (e.g. 5%). It is
+                        // added to the Grand Total and to the supplier payable when
+                        // the order is received. The visible input is parsed into the
+                        // persisted is-percentage flag and value (hidden fields).
+                        TextInput::make('withholding_tax_input')
+                            ->label('Withholding Tax')
+                            ->placeholder('e.g. 50 or 5%')
+                            ->helperText('Enter a flat amount (e.g. 50) or a percentage (e.g. 5%). Leave empty for none.')
+                            ->dehydrated(false)
+                            ->live(onBlur: true)
+                            ->afterStateHydrated(function ($state, callable $set, callable $get): void {
+                                if (filled($state)) {
+                                    return;
+                                }
+
+                                $value = $get('withholding_tax_value');
+                                if (! is_numeric($value) || (float) $value <= 0) {
+                                    $set('withholding_tax_input', null);
+
+                                    return;
+                                }
+
+                                $set('withholding_tax_input', self::formatWithholdingInput(
+                                    (bool) $get('withholding_tax_is_percentage'),
+                                    (float) $value,
+                                ));
+                            })
+                            ->afterStateUpdated(function ($state, callable $set): void {
+                                $raw = is_string($state) ? trim($state) : (string) ($state ?? '');
+
+                                if ($raw === '') {
+                                    $set('withholding_tax_is_percentage', false);
+                                    $set('withholding_tax_value', null);
+                                    $set('withholding_tax_input', null);
+
+                                    return;
+                                }
+
+                                $isPercent = str_ends_with($raw, '%');
+                                $number = max(0.0, (float) str_replace('%', '', $raw));
+
+                                $set('withholding_tax_is_percentage', $isPercent);
+                                $set('withholding_tax_value', $number);
+                                $set('withholding_tax_input', self::formatWithholdingInput($isPercent, $number));
+                            })
+                            ->columnSpanFull(),
+
+                        Hidden::make('withholding_tax_is_percentage')->default(false),
+                        Hidden::make('withholding_tax_value'),
+
+                        Placeholder::make('withholding_tax_amount_display')
+                            ->label('Withholding Tax Amount')
+                            ->content(function (callable $get): string {
+                                $currency = Filament::getTenant()?->currency;
+
+                                return Number::currency(
+                                    self::previewWithholdingTax($get),
+                                    $currency?->code ?? 'PKR',
+                                );
+                            })
+                            ->columnSpanFull(),
+
+                        Placeholder::make('grand_total_display')
+                            ->label('Grand Total')
+                            ->content(function (callable $get): string {
+                                $currency = Filament::getTenant()?->currency;
+                                $supplierTotal = (float) ($get('total_requested_supplier_price') ?? 0);
+
+                                return Number::currency(
+                                    $supplierTotal + self::previewWithholdingTax($get),
+                                    $currency?->code ?? 'PKR',
+                                );
+                            })
                             ->columnSpanFull(),
                     ])
                     ->collapsible(false)
                     ->compact()
                     ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * Live preview of the withholding tax amount from the current form state.
+     * The authoritative value is recomputed and persisted by
+     * PurchaseOrder::recalculateTotals() on save.
+     */
+    /**
+     * Format a computed summary money value using the order's store currency,
+     * falling back to the current tenant currency.
+     */
+    private static function formatSummaryMoney(mixed $value, mixed $record): string
+    {
+        $code = $record?->store?->currency?->code
+            ?? Filament::getTenant()?->currency?->code
+            ?? 'PKR';
+
+        return Number::currency((float) ($value ?? 0), $code);
+    }
+
+    /**
+     * Format the visible withholding tax input from its parsed parts, e.g.
+     * "5%" for a percentage or "50" for a flat amount.
+     */
+    private static function formatWithholdingInput(bool $isPercent, float $value): string
+    {
+        if ($isPercent) {
+            return rtrim(rtrim(number_format($value, 6, '.', ''), '0'), '.').'%';
+        }
+
+        $decimalPlaces = Filament::getTenant()?->currency?->decimal_places ?? 2;
+
+        return rtrim(rtrim(number_format($value, $decimalPlaces, '.', ''), '0'), '.');
+    }
+
+    private static function previewWithholdingTax(callable $get): float
+    {
+        $value = (float) ($get('withholding_tax_value') ?? 0);
+
+        if ($value <= 0) {
+            return 0.0;
+        }
+
+        if ($get('withholding_tax_is_percentage')) {
+            $supplierTotal = (float) ($get('total_requested_supplier_price') ?? 0);
+
+            return $supplierTotal * ($value / 100);
+        }
+
+        return $value;
     }
 
     private static function recalcSummaryFromItems(
@@ -961,6 +1077,20 @@ class PurchaseOrderForm
                 'requested_supplier_input' => rtrim(rtrim(number_format((float) $supplierPercentage, 6, '.', ''), '0'), '.').'%',
             ]);
         }
+
+        // Pre-compute each row's "Totals" (line total) into state so the value
+        // is present when the row hydrates. Without this the newly added row's
+        // disabled line-total input renders blank the first time, because a
+        // value set afterwards (via afterStateHydrated) is not reflected by a
+        // disabled input on that initial render.
+        $store = Filament::getTenant();
+        $decimalPlaces = $store?->currency?->decimal_places ?? 2;
+        foreach ($items as &$lineItem) {
+            $lineSupplierPrice = (float) ($lineItem['requested_supplier_price'] ?? 0);
+            $lineQuantity = (float) ($lineItem['requested_quantity'] ?? 0);
+            $lineItem['requested_line_total'] = round($lineQuantity * $lineSupplierPrice, $decimalPlaces);
+        }
+        unset($lineItem);
 
         $set('purchaseOrderProducts', array_values($items));
         self::recalcSummaryFromItems($items, $set);

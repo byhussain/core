@@ -2,6 +2,8 @@
 
 namespace SmartTill\Core\Models;
 
+use App\Models\Store;
+use Database\Factories\PurchaseOrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,7 +18,7 @@ use SmartTill\Core\Traits\HasStoreScopedReference;
 
 class PurchaseOrder extends Model
 {
-    /** @use HasFactory<\Database\Factories\PurchaseOrderFactory> */
+    /** @use HasFactory<PurchaseOrderFactory> */
     use HasFactory, HasStoreScopedReference, SoftDeletes;
 
     protected $fillable = [
@@ -34,6 +36,9 @@ class PurchaseOrder extends Model
         'total_received_supplier_price',
         'total_requested_supplier_percentage',
         'total_received_supplier_percentage',
+        'withholding_tax_is_percentage',
+        'withholding_tax_value',
+        'withholding_tax_amount',
     ];
 
     protected function casts(): array
@@ -50,12 +55,33 @@ class PurchaseOrder extends Model
             'total_received_supplier_price' => PriceCast::class,
             'total_requested_supplier_percentage' => 'decimal:6',
             'total_received_supplier_percentage' => 'decimal:6',
+            'withholding_tax_is_percentage' => 'boolean',
+            'withholding_tax_value' => 'decimal:6',
+            'withholding_tax_amount' => PriceCast::class,
         ];
+    }
+
+    /**
+     * Compute the withholding tax amount for a given supplier-cost base.
+     * When the value is a percentage it is applied to the base; otherwise the
+     * flat value is returned as-is. Returns 0 when no withholding tax is set.
+     */
+    public function computeWithholdingTax(float $supplierBase): float
+    {
+        $value = (float) ($this->withholding_tax_value ?? 0);
+
+        if ($value <= 0) {
+            return 0.0;
+        }
+
+        return $this->withholding_tax_is_percentage
+            ? $supplierBase * ($value / 100)
+            : $value;
     }
 
     public function store(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Store::class);
+        return $this->belongsTo(Store::class);
     }
 
     public function supplier(): BelongsTo
@@ -116,6 +142,15 @@ class PurchaseOrder extends Model
         $totalReceivedSupplierPrice = $this->calculateReceivedSupplierTotal();
         $totalReceivedTaxAmount = (float) $products->sum('received_tax_amount');
 
+        // Withholding tax is computed on the supplier subtotal. Once anything
+        // has been received we base it on the received subtotal (that is what
+        // gets posted to the supplier ledger); otherwise we preview it on the
+        // requested subtotal.
+        $withholdingBase = $totalReceivedSupplierPrice > 0
+            ? $totalReceivedSupplierPrice
+            : $totalRequestedSupplierPrice;
+        $withholdingTaxAmount = $this->computeWithholdingTax($withholdingBase);
+
         $this->forceFill([
             'total_requested_quantity' => round($totalRequestedQuantity, 2),
             'total_received_quantity' => round($totalReceivedQuantity, 2),
@@ -125,6 +160,7 @@ class PurchaseOrder extends Model
             'total_received_tax_amount' => round($totalReceivedTaxAmount, $decimalPlaces),
             'total_requested_supplier_price' => round($totalRequestedSupplierPrice, $decimalPlaces),
             'total_received_supplier_price' => round($totalReceivedSupplierPrice, $decimalPlaces),
+            'withholding_tax_amount' => round($withholdingTaxAmount, $decimalPlaces),
         ])->saveQuietly();
 
         CloudSyncFlagger::flag($this);

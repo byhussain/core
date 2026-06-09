@@ -8,6 +8,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use SmartTill\Core\Enums\PurchaseOrderStatus;
 use SmartTill\Core\Models\PurchaseOrder;
 
 class PurchaseOrderInfolist
@@ -90,6 +91,25 @@ class PurchaseOrderInfolist
                                             ->color('success')
                                             ->icon(Heroicon::OutlinedBanknotes)
                                             ->columnSpanFull(),
+
+                                        TextEntry::make('withholding_tax_requested')
+                                            ->label(fn (PurchaseOrder $record): string => 'Withholding Tax'.self::withholdingLabelSuffix($record))
+                                            ->state(fn (PurchaseOrder $record): float => $record->computeWithholdingTax($record->calculateRequestedSupplierTotal()))
+                                            ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
+                                            ->icon(Heroicon::OutlinedPercentBadge)
+                                            ->weight('medium')
+                                            ->visible(fn (PurchaseOrder $record): bool => self::hasWithholdingTax($record))
+                                            ->columnSpanFull(),
+
+                                        TextEntry::make('grand_total_requested')
+                                            ->label('Grand Total')
+                                            ->state(fn (PurchaseOrder $record): float => $record->calculateRequestedSupplierTotal() + $record->computeWithholdingTax($record->calculateRequestedSupplierTotal()))
+                                            ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
+                                            ->weight('bold')
+                                            ->color('primary')
+                                            ->icon(Heroicon::OutlinedBanknotes)
+                                            ->visible(fn (PurchaseOrder $record): bool => self::hasWithholdingTax($record))
+                                            ->columnSpanFull(),
                                     ])
                                     ->collapsible(false)
                                     ->compact()
@@ -109,8 +129,8 @@ class PurchaseOrderInfolist
                                             ->weight('medium')
                                             ->visible(function ($record): bool {
                                                 $status = $record->status;
-                                                if ($status instanceof \SmartTill\Core\Enums\PurchaseOrderStatus) {
-                                                    return $status === \SmartTill\Core\Enums\PurchaseOrderStatus::Closed;
+                                                if ($status instanceof PurchaseOrderStatus) {
+                                                    return $status === PurchaseOrderStatus::Closed;
                                                 }
 
                                                 return $status === 'closed';
@@ -131,8 +151,8 @@ class PurchaseOrderInfolist
 
                                                 $status = $record->status;
                                                 // Check if status is Closed enum or 'closed' string
-                                                if ($status instanceof \SmartTill\Core\Enums\PurchaseOrderStatus) {
-                                                    return $status === \SmartTill\Core\Enums\PurchaseOrderStatus::Closed;
+                                                if ($status instanceof PurchaseOrderStatus) {
+                                                    return $status === PurchaseOrderStatus::Closed;
                                                 }
 
                                                 // Fallback for string comparison
@@ -150,8 +170,8 @@ class PurchaseOrderInfolist
                                             ->weight('medium')
                                             ->visible(function ($record): bool {
                                                 $status = $record->status;
-                                                if ($status instanceof \SmartTill\Core\Enums\PurchaseOrderStatus) {
-                                                    return $status === \SmartTill\Core\Enums\PurchaseOrderStatus::Closed;
+                                                if ($status instanceof PurchaseOrderStatus) {
+                                                    return $status === PurchaseOrderStatus::Closed;
                                                 }
 
                                                 return $status === 'closed';
@@ -167,12 +187,32 @@ class PurchaseOrderInfolist
                                             ->icon(Heroicon::OutlinedBanknotes)
                                             ->visible(function ($record): bool {
                                                 $status = $record->status;
-                                                if ($status instanceof \SmartTill\Core\Enums\PurchaseOrderStatus) {
-                                                    return $status === \SmartTill\Core\Enums\PurchaseOrderStatus::Closed;
+                                                if ($status instanceof PurchaseOrderStatus) {
+                                                    return $status === PurchaseOrderStatus::Closed;
                                                 }
 
                                                 return $status === 'closed';
                                             })
+                                            ->columnSpanFull(),
+
+                                        TextEntry::make('withholding_tax_received')
+                                            ->label(fn (PurchaseOrder $record): string => 'Withholding Tax'.self::withholdingLabelSuffix($record))
+                                            ->state(fn (PurchaseOrder $record): float => $record->computeWithholdingTax($record->calculateReceivedSupplierTotal()))
+                                            ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
+                                            ->icon(Heroicon::OutlinedPercentBadge)
+                                            ->color('success')
+                                            ->weight('medium')
+                                            ->visible(fn (PurchaseOrder $record): bool => self::hasWithholdingTax($record) && self::isClosed($record))
+                                            ->columnSpanFull(),
+
+                                        TextEntry::make('grand_total_received')
+                                            ->label('Grand Total')
+                                            ->state(fn (PurchaseOrder $record): float => $record->calculateReceivedSupplierTotal() + $record->computeWithholdingTax($record->calculateReceivedSupplierTotal()))
+                                            ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
+                                            ->weight('bold')
+                                            ->color('primary')
+                                            ->icon(Heroicon::OutlinedBanknotes)
+                                            ->visible(fn (PurchaseOrder $record): bool => self::hasWithholdingTax($record) && self::isClosed($record))
                                             ->columnSpanFull(),
                                     ])
                                     ->collapsible(false)
@@ -222,5 +262,32 @@ class PurchaseOrderInfolist
                     ->compact()
                     ->columnSpanFull(),
             ]);
+    }
+
+    private static function hasWithholdingTax(PurchaseOrder $record): bool
+    {
+        return (float) ($record->withholding_tax_value ?? 0) > 0;
+    }
+
+    private static function isClosed(PurchaseOrder $record): bool
+    {
+        $status = $record->status;
+
+        if ($status instanceof PurchaseOrderStatus) {
+            return $status === PurchaseOrderStatus::Closed;
+        }
+
+        return strtolower((string) ($status?->value ?? $status)) === 'closed';
+    }
+
+    private static function withholdingLabelSuffix(PurchaseOrder $record): string
+    {
+        if (! self::hasWithholdingTax($record) || ! $record->withholding_tax_is_percentage) {
+            return '';
+        }
+
+        $value = (float) $record->withholding_tax_value;
+
+        return ' ('.rtrim(rtrim(number_format($value, 6, '.', ''), '0'), '.').'%)';
     }
 }

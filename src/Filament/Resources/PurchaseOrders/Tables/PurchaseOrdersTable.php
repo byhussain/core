@@ -20,9 +20,11 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Route;
 use SmartTill\Core\Enums\PurchaseOrderStatus;
+use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
+use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
 use SmartTill\Core\Filament\Resources\Suppliers\RelationManagers\PurchaseOrdersRelationManager;
 use SmartTill\Core\Filament\Resources\Suppliers\SupplierResource;
-use SmartTill\Core\Filament\Resources\Helpers\SyncReferenceColumn;
+use SmartTill\Core\Models\PurchaseOrder;
 
 class PurchaseOrdersTable
 {
@@ -44,6 +46,8 @@ class PurchaseOrdersTable
                     ->hiddenOn(PurchaseOrdersRelationManager::class),
                 TextColumn::make('total_requested_supplier_price')
                     ->label('Req. Supplier Price')
+                    ->tooltip('Grand total — supplier cost + withholding tax')
+                    ->state(fn (PurchaseOrder $record): float => self::grandTotalFor((float) $record->total_requested_supplier_price, $record))
                     ->money(
                         fn () => Filament::getTenant()?->currency?->code ?? 'PKR',
                         decimalPlaces: fn () => Filament::getTenant()?->currency?->decimal_places ?? 2
@@ -51,6 +55,8 @@ class PurchaseOrdersTable
                     ->sortable(),
                 TextColumn::make('total_received_supplier_price')
                     ->label('Rec. Supplier Price')
+                    ->tooltip('Grand total — supplier cost + withholding tax')
+                    ->state(fn (PurchaseOrder $record): float => self::grandTotalFor((float) $record->total_received_supplier_price, $record))
                     ->money(
                         fn () => Filament::getTenant()?->currency?->code ?? 'PKR',
                         decimalPlaces: fn () => Filament::getTenant()?->currency?->decimal_places ?? 2
@@ -97,8 +103,8 @@ class PurchaseOrdersTable
                         ->label('Print')
                         ->icon(Heroicon::OutlinedPrinter)
                         ->color('gray')
-                        ->visible(fn () => Route::has('print.purchase-order') && \SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper::check('Print Purchase Orders'))
-                        ->authorize(fn () => Route::has('print.purchase-order') && \SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper::check('Print Purchase Orders'))
+                        ->visible(fn () => Route::has('print.purchase-order') && ResourceCanAccessHelper::check('Print Purchase Orders'))
+                        ->authorize(fn () => Route::has('print.purchase-order') && ResourceCanAccessHelper::check('Print Purchase Orders'))
                         ->url(fn ($record) => Route::has('print.purchase-order') ? route('print.purchase-order', [
                             'purchaseOrder' => $record->id,
                         ]) : null)
@@ -107,8 +113,8 @@ class PurchaseOrdersTable
                         ->label('Mark as Closed')
                         ->icon(Heroicon::Check)
                         ->color('success')
-                        ->visible(fn ($record) => $record->status !== PurchaseOrderStatus::Closed && \SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper::check('Close Purchase Orders'))
-                        ->authorize(fn () => \SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper::check('Close Purchase Orders'))
+                        ->visible(fn ($record) => $record->status !== PurchaseOrderStatus::Closed && ResourceCanAccessHelper::check('Close Purchase Orders'))
+                        ->authorize(fn () => ResourceCanAccessHelper::check('Close Purchase Orders'))
                         ->url(fn ($record) => route('filament.store.resources.purchase-orders.close', [
                             'tenant' => filament()->getTenant(),
                             'record' => $record,
@@ -137,5 +143,19 @@ class PurchaseOrdersTable
                         ->visible(fn ($records) => $records->every(fn ($record) => $record->trashed())),
                 ]),
             ]);
+    }
+
+    /**
+     * Grand total for a supplier-cost base: the base plus its withholding tax.
+     * Returns 0 when the base is 0 so a flat withholding value is not shown
+     * against an empty (e.g. not-yet-received) subtotal.
+     */
+    private static function grandTotalFor(float $base, PurchaseOrder $record): float
+    {
+        if ($base <= 0) {
+            return 0.0;
+        }
+
+        return $base + $record->computeWithholdingTax($base);
     }
 }

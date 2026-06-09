@@ -293,10 +293,33 @@
     </table>
 
     @if (! empty($rows))
+        @php
+            // Grand totals: sum the debit and credit magnitudes across all rows.
+            $decimals = $decimalPlaces ?? 2;
+            $totalDebit = 0.0;
+            $totalCredit = 0.0;
+            foreach ($rows as $totalsRow) {
+                $rowType = strtolower((string) ($totalsRow[3] ?? ''));
+                $rowAmount = (float) str_replace(',', '', ltrim((string) ($totalsRow[4] ?? ''), '-'));
+                if (str_contains($rowType, 'debit')) {
+                    $totalDebit += $rowAmount;
+                } elseif (str_contains($rowType, 'credit')) {
+                    $totalCredit += $rowAmount;
+                }
+            }
+        @endphp
         <table class="summary">
             <tr>
                 <td>
                     <div class="summary-box">
+                        <div class="row">
+                            <span class="k">Total Debit</span>
+                            <span class="v">{{ $currencyCode }} {{ number_format($totalDebit, $decimals) }}</span>
+                        </div>
+                        <div class="row">
+                            <span class="k">Total Credit</span>
+                            <span class="v">{{ $currencyCode }} {{ number_format($totalCredit, $decimals) }}</span>
+                        </div>
                         <div class="row closing">
                             <span class="k">Closing Balance</span>
                             <span class="v">{{ $currencyCode }} {{ $closingBalance }}</span>

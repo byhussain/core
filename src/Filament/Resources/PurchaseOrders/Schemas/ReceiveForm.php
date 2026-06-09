@@ -5,6 +5,7 @@ namespace SmartTill\Core\Filament\Resources\PurchaseOrders\Schemas;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -13,6 +14,8 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Number;
+use SmartTill\Core\Models\PurchaseOrder;
 use SmartTill\Core\Models\Unit;
 use SmartTill\Core\Models\Variation;
 
@@ -790,12 +793,78 @@ class ReceiveForm
                             ->numeric()
                             ->required()
                             ->columnSpanFull(),
+
+                        // Withholding tax was set when the order was created; it is
+                        // shown here (computed on the received supplier subtotal) and
+                        // is added to the supplier payable when the order is closed.
+                        // The record is resolved via $livewire because this runs on a
+                        // custom page where $record is not auto-injected.
+                        Placeholder::make('withholding_tax_received_display')
+                            ->label(fn ($livewire): string => 'Withholding Tax'.self::withholdingLabelSuffix(self::resolveRecord($livewire)))
+                            ->content(fn (callable $get, $livewire): string => Number::currency(
+                                self::previewReceivedWithholdingTax($get, self::resolveRecord($livewire)),
+                                self::resolveRecord($livewire)?->store?->currency?->code ?? Filament::getTenant()?->currency?->code ?? 'PKR',
+                            ))
+                            ->visible(fn ($livewire): bool => self::hasWithholdingTax(self::resolveRecord($livewire)))
+                            ->columnSpanFull(),
+
+                        Placeholder::make('grand_total_received_display')
+                            ->label('Grand Total')
+                            ->content(fn (callable $get, $livewire): string => Number::currency(
+                                (float) ($get('total_received_supplier_price') ?? 0) + self::previewReceivedWithholdingTax($get, self::resolveRecord($livewire)),
+                                self::resolveRecord($livewire)?->store?->currency?->code ?? Filament::getTenant()?->currency?->code ?? 'PKR',
+                            ))
+                            ->visible(fn ($livewire): bool => self::hasWithholdingTax(self::resolveRecord($livewire)))
+                            ->columnSpanFull(),
                     ])
                     ->collapsible(false)
                     ->compact()
                     ->columnSpanFull(),
 
             ]);
+    }
+
+    private static function resolveRecord(mixed $livewire): ?PurchaseOrder
+    {
+        $record = method_exists($livewire, 'getRecord') ? $livewire->getRecord() : ($livewire->record ?? null);
+
+        return $record instanceof PurchaseOrder ? $record : null;
+    }
+
+    private static function hasWithholdingTax(?PurchaseOrder $record): bool
+    {
+        return (float) ($record?->withholding_tax_value ?? 0) > 0;
+    }
+
+    private static function withholdingLabelSuffix(?PurchaseOrder $record): string
+    {
+        if (! self::hasWithholdingTax($record) || ! $record?->withholding_tax_is_percentage) {
+            return '';
+        }
+
+        $value = (float) $record->withholding_tax_value;
+
+        return ' ('.rtrim(rtrim(number_format($value, 6, '.', ''), '0'), '.').'%)';
+    }
+
+    /**
+     * Withholding tax computed on the live received supplier subtotal.
+     */
+    private static function previewReceivedWithholdingTax(callable $get, ?PurchaseOrder $record): float
+    {
+        if (! self::hasWithholdingTax($record)) {
+            return 0.0;
+        }
+
+        $value = (float) $record->withholding_tax_value;
+
+        if ($record->withholding_tax_is_percentage) {
+            $base = (float) ($get('total_received_supplier_price') ?? 0);
+
+            return $base * ($value / 100);
+        }
+
+        return $value;
     }
 
     /**

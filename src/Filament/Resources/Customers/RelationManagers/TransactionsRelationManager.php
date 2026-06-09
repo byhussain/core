@@ -393,6 +393,7 @@ class TransactionsRelationManager extends RelationManager
             'partyEmail' => $customer->email,
             'generatedAt' => now()->setTimezone($timezone)->format('M d, Y g:i A'),
             'currencyCode' => $currencyCode,
+            'decimalPlaces' => $decimalPlaces,
             'rows' => $rows,
             'rowCount' => count($rows),
             'closingBalance' => $closingBalance,
