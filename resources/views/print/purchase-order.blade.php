@@ -371,6 +371,22 @@
             $recWht = $hasWht && $receivedSupplierTotal > 0
                 ? ($whtIsPercent ? $receivedSupplierTotal * ($whtValue / 100) : $whtValue)
                 : 0;
+
+            // Overall invoice discount, applied AFTER withholding tax.
+            $discIsPercent = (bool) $purchaseOrder->discount_is_percentage;
+            $discValue = (float) ($purchaseOrder->discount_value ?? 0);
+            $hasDisc = $discValue > 0;
+            $discLabelSuffix = $discIsPercent
+                ? ' ('.rtrim(rtrim(number_format($discValue, 6, '.', ''), '0'), '.').'%)'
+                : '';
+            $reqAfterWht = $requestedSupplierTotal + $reqWht;
+            $recAfterWht = $receivedSupplierTotal + $recWht;
+            $reqDisc = $hasDisc ? min($discIsPercent ? $reqAfterWht * ($discValue / 100) : $discValue, $reqAfterWht) : 0;
+            $recDisc = $hasDisc && $receivedSupplierTotal > 0
+                ? min($discIsPercent ? $recAfterWht * ($discValue / 100) : $discValue, $recAfterWht)
+                : 0;
+
+            $hasAdjustments = $hasWht || $hasDisc;
         @endphp
         <div class="summary-section mt-4">
             <div class="grid grid-cols-2 gap-2 text-xs p-0" id="totals-section">
@@ -390,9 +406,9 @@
                     </div>
                     
                     <!-- Total Supplier Cost -->
-                    <div class="flex justify-between gap-4 mb-0 {{ $hasWht ? 'text-slate-700' : 'summary-final-total mt-0.5 pt-0.5 font-bold text-sm text-slate-900' }}">
-                        <span class="{{ $hasWht ? 'text-slate-600' : '' }}">Total Supplier Cost:</span>
-                        <span class="whitespace-nowrap font-semibold {{ $hasWht ? 'text-slate-900' : 'text-blue-600' }}">{{ $fmtNoRound($requestedSupplierTotal) }} {{ $currencyCode }}</span>
+                    <div class="flex justify-between gap-4 mb-0 {{ $hasAdjustments ? 'text-slate-700' : 'summary-final-total mt-0.5 pt-0.5 font-bold text-sm text-slate-900' }}">
+                        <span class="{{ $hasAdjustments ? 'text-slate-600' : '' }}">Total Supplier Cost:</span>
+                        <span class="whitespace-nowrap font-semibold {{ $hasAdjustments ? 'text-slate-900' : 'text-blue-600' }}">{{ $fmtNoRound($requestedSupplierTotal) }} {{ $currencyCode }}</span>
                     </div>
 
                     @if($hasWht)
@@ -401,11 +417,21 @@
                             <span class="text-slate-600">Withholding Tax{{ $whtLabelSuffix }}:</span>
                             <span class="whitespace-nowrap font-semibold text-slate-900">{{ $fmtNoRound($reqWht) }} {{ $currencyCode }}</span>
                         </div>
+                    @endif
 
+                    @if($hasDisc)
+                        <!-- Discount -->
+                        <div class="flex justify-between gap-4 mb-0 text-slate-700">
+                            <span class="text-slate-600">Discount{{ $discLabelSuffix }}:</span>
+                            <span class="whitespace-nowrap font-semibold text-slate-900">-{{ $fmtNoRound($reqDisc) }} {{ $currencyCode }}</span>
+                        </div>
+                    @endif
+
+                    @if($hasAdjustments)
                         <!-- Grand Total -->
                         <div class="summary-final-total flex justify-between gap-4 mt-0.5 pt-0.5 font-bold text-sm text-slate-900">
                             <span>Grand Total:</span>
-                            <span class="whitespace-nowrap text-blue-600">{{ $fmtNoRound($requestedSupplierTotal + $reqWht) }} {{ $currencyCode }}</span>
+                            <span class="whitespace-nowrap text-blue-600">{{ $fmtNoRound($requestedSupplierTotal + $reqWht - $reqDisc) }} {{ $currencyCode }}</span>
                         </div>
                     @endif
                 </div>
@@ -426,8 +452,8 @@
                     </div>
                     
                     <!-- Total Supplier Cost -->
-                    <div class="flex justify-between gap-4 mb-0 {{ $hasWht ? 'text-slate-700' : 'summary-final-total mt-0.5 pt-0.5 font-bold text-sm text-slate-900' }}">
-                        <span class="{{ $hasWht ? 'text-slate-600' : '' }}">Total Supplier Cost:</span>
+                    <div class="flex justify-between gap-4 mb-0 {{ $hasAdjustments ? 'text-slate-700' : 'summary-final-total mt-0.5 pt-0.5 font-bold text-sm text-slate-900' }}">
+                        <span class="{{ $hasAdjustments ? 'text-slate-600' : '' }}">Total Supplier Cost:</span>
                         <span class="whitespace-nowrap font-semibold {{ $purchaseOrder->total_received_supplier_price > 0 ? 'text-green-600' : 'text-slate-900' }}">{{ $purchaseOrder->total_received_supplier_price > 0 ? $fmtNoRound($receivedSupplierTotal).' '.$currencyCode : '—' }}</span>
                     </div>
 
@@ -437,11 +463,21 @@
                             <span class="text-slate-600">Withholding Tax{{ $whtLabelSuffix }}:</span>
                             <span class="whitespace-nowrap font-semibold {{ $recWht > 0 ? 'text-green-600' : 'text-slate-900' }}">{{ $recWht > 0 ? $fmtNoRound($recWht).' '.$currencyCode : '—' }}</span>
                         </div>
+                    @endif
 
+                    @if($hasDisc)
+                        <!-- Discount -->
+                        <div class="flex justify-between gap-4 mb-0 text-slate-700">
+                            <span class="text-slate-600">Discount{{ $discLabelSuffix }}:</span>
+                            <span class="whitespace-nowrap font-semibold {{ $recDisc > 0 ? 'text-green-600' : 'text-slate-900' }}">{{ $recDisc > 0 ? '-'.$fmtNoRound($recDisc).' '.$currencyCode : '—' }}</span>
+                        </div>
+                    @endif
+
+                    @if($hasAdjustments)
                         <!-- Grand Total -->
                         <div class="summary-final-total flex justify-between gap-4 mt-0.5 pt-0.5 font-bold text-sm text-slate-900">
                             <span>Grand Total:</span>
-                            <span class="whitespace-nowrap {{ $receivedSupplierTotal > 0 ? 'text-green-600' : 'text-slate-900' }}">{{ $receivedSupplierTotal > 0 ? $fmtNoRound($receivedSupplierTotal + $recWht).' '.$currencyCode : '—' }}</span>
+                            <span class="whitespace-nowrap {{ $receivedSupplierTotal > 0 ? 'text-green-600' : 'text-slate-900' }}">{{ $receivedSupplierTotal > 0 ? $fmtNoRound($receivedSupplierTotal + $recWht - $recDisc).' '.$currencyCode : '—' }}</span>
                         </div>
                     @endif
                 </div>

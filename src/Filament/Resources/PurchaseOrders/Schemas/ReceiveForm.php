@@ -15,7 +15,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Number;
-use SmartTill\Core\Models\PurchaseOrder;
 use SmartTill\Core\Models\Unit;
 use SmartTill\Core\Models\Variation;
 
@@ -758,63 +757,110 @@ class ReceiveForm
                     ->collapsible(false)
                     ->columnSpanFull(),
 
-                // Summary Section
+                // Summary Section — mirrors the Order Summary on the create form so
+                // the figures look the same, and the withholding tax and discount set
+                // at creation can be reviewed and adjusted here at receive time.
                 Section::make('Receive Summary')
                     ->description('Summary of received items')
                     ->inlineLabel()
-                    ->afterHeader([
-                    ])
                     ->schema([
-                        TextInput::make('total_received_quantity')
+                        Placeholder::make('total_received_quantity_display')
                             ->label('Total Items')
-                            ->disabled()
-                            ->numeric()
-                            ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((int) $state) : '0')
-                            ->required()
+                            ->content(fn (callable $get): string => number_format((int) ($get('total_received_quantity') ?? 0)))
                             ->columnSpanFull(),
-                        TextInput::make('total_received_tax_amount')
+
+                        Placeholder::make('total_received_tax_amount_display')
                             ->label('Total Tax')
-                            ->disabled()
-                            ->prefix(fn ($record) => $record?->store?->currency?->code ?? Filament::getTenant()?->currency->code ?? 'PKR')
-                            ->numeric()
+                            ->content(fn (callable $get): string => self::formatSummaryMoney($get('total_received_tax_amount')))
                             ->visible(fn () => Filament::getTenant()?->tax_enabled ?? false)
                             ->columnSpanFull(),
-                        TextInput::make('total_received_unit_price')
+
+                        Placeholder::make('total_received_unit_price_display')
                             ->label('Total Received Unit Price')
-                            ->disabled()
-                            ->prefix(fn ($record) => $record?->store?->currency?->code ?? Filament::getTenant()?->currency->code ?? 'PKR')
-                            ->numeric()
-                            ->required()
+                            ->content(fn (callable $get): string => self::formatSummaryMoney($get('total_received_unit_price')))
                             ->columnSpanFull(),
-                        TextInput::make('total_received_supplier_price')
+
+                        Placeholder::make('total_received_supplier_price_display')
                             ->label('Total Received Supplier Cost')
-                            ->disabled()
-                            ->prefix(fn ($record) => $record?->store?->currency?->code ?? Filament::getTenant()?->currency->code ?? 'PKR')
-                            ->numeric()
-                            ->required()
+                            ->content(fn (callable $get): string => self::formatSummaryMoney($get('total_received_supplier_price')))
                             ->columnSpanFull(),
 
-                        // Withholding tax was set when the order was created; it is
-                        // shown here (computed on the received supplier subtotal) and
-                        // is added to the supplier payable when the order is closed.
-                        // The record is resolved via $livewire because this runs on a
-                        // custom page where $record is not auto-injected.
-                        Placeholder::make('withholding_tax_received_display')
-                            ->label(fn ($livewire): string => 'Withholding Tax'.self::withholdingLabelSuffix(self::resolveRecord($livewire)))
-                            ->content(fn (callable $get, $livewire): string => Number::currency(
-                                self::previewReceivedWithholdingTax($get, self::resolveRecord($livewire)),
-                                self::resolveRecord($livewire)?->store?->currency?->code ?? Filament::getTenant()?->currency?->code ?? 'PKR',
-                            ))
-                            ->visible(fn ($livewire): bool => self::hasWithholdingTax(self::resolveRecord($livewire)))
+                        TextInput::make('withholding_tax_input')
+                            ->label('Withholding Tax')
+                            ->placeholder('e.g. 50 or 5%')
+                            ->helperText('Flat (e.g. 50) or percentage (e.g. 5%). Leave empty for none.')
+                            ->dehydrated(false)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, callable $set): void {
+                                $raw = is_string($state) ? trim($state) : (string) ($state ?? '');
+
+                                if ($raw === '') {
+                                    $set('withholding_tax_is_percentage', false);
+                                    $set('withholding_tax_value', null);
+                                    $set('withholding_tax_input', null);
+
+                                    return;
+                                }
+
+                                $isPercent = str_ends_with($raw, '%');
+                                $number = max(0.0, (float) str_replace('%', '', $raw));
+
+                                $set('withholding_tax_is_percentage', $isPercent);
+                                $set('withholding_tax_value', $number);
+                                $set('withholding_tax_input', self::formatInput($isPercent, $number));
+                            })
                             ->columnSpanFull(),
 
-                        Placeholder::make('grand_total_received_display')
+                        Hidden::make('withholding_tax_is_percentage'),
+                        Hidden::make('withholding_tax_value'),
+
+                        Placeholder::make('withholding_tax_amount_display')
+                            ->label('Withholding Tax Amount')
+                            ->content(fn (callable $get): string => self::formatSummaryMoney(self::previewWithholdingTax($get)))
+                            ->columnSpanFull(),
+
+                        TextInput::make('discount_input')
+                            ->label('Discount')
+                            ->placeholder('e.g. 100 or 2.5%')
+                            ->helperText('Applied after withholding tax. Flat (e.g. 100) or percentage (e.g. 2.5%). Leave empty for none.')
+                            ->dehydrated(false)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, callable $set): void {
+                                $raw = is_string($state) ? trim($state) : (string) ($state ?? '');
+
+                                if ($raw === '') {
+                                    $set('discount_is_percentage', false);
+                                    $set('discount_value', null);
+                                    $set('discount_input', null);
+
+                                    return;
+                                }
+
+                                $isPercent = str_ends_with($raw, '%');
+                                $number = max(0.0, (float) str_replace('%', '', $raw));
+
+                                $set('discount_is_percentage', $isPercent);
+                                $set('discount_value', $number);
+                                $set('discount_input', self::formatInput($isPercent, $number));
+                            })
+                            ->columnSpanFull(),
+
+                        Hidden::make('discount_is_percentage'),
+                        Hidden::make('discount_value'),
+
+                        Placeholder::make('discount_amount_display')
+                            ->label('Discount Amount')
+                            ->content(fn (callable $get): string => self::formatSummaryMoney(self::previewDiscount($get)))
+                            ->columnSpanFull(),
+
+                        Placeholder::make('grand_total_display')
                             ->label('Grand Total')
-                            ->content(fn (callable $get, $livewire): string => Number::currency(
-                                (float) ($get('total_received_supplier_price') ?? 0) + self::previewReceivedWithholdingTax($get, self::resolveRecord($livewire)),
-                                self::resolveRecord($livewire)?->store?->currency?->code ?? Filament::getTenant()?->currency?->code ?? 'PKR',
-                            ))
-                            ->visible(fn ($livewire): bool => self::hasWithholdingTax(self::resolveRecord($livewire)))
+                            ->content(function (callable $get): string {
+                                $afterWht = (float) ($get('total_received_supplier_price') ?? 0)
+                                    + self::previewWithholdingTax($get);
+
+                                return self::formatSummaryMoney($afterWht - self::previewDiscount($get));
+                            })
                             ->columnSpanFull(),
                     ])
                     ->collapsible(false)
@@ -824,47 +870,64 @@ class ReceiveForm
             ]);
     }
 
-    private static function resolveRecord(mixed $livewire): ?PurchaseOrder
+    /**
+     * Format the visible withholding tax / discount input from its parsed
+     * parts, e.g. "5%" for a percentage or "50" for a flat amount.
+     */
+    private static function formatInput(bool $isPercent, float $value): string
     {
-        $record = method_exists($livewire, 'getRecord') ? $livewire->getRecord() : ($livewire->record ?? null);
-
-        return $record instanceof PurchaseOrder ? $record : null;
-    }
-
-    private static function hasWithholdingTax(?PurchaseOrder $record): bool
-    {
-        return (float) ($record?->withholding_tax_value ?? 0) > 0;
-    }
-
-    private static function withholdingLabelSuffix(?PurchaseOrder $record): string
-    {
-        if (! self::hasWithholdingTax($record) || ! $record?->withholding_tax_is_percentage) {
-            return '';
+        if ($isPercent) {
+            return rtrim(rtrim(number_format($value, 6, '.', ''), '0'), '.').'%';
         }
 
-        $value = (float) $record->withholding_tax_value;
+        $decimalPlaces = Filament::getTenant()?->currency?->decimal_places ?? 2;
 
-        return ' ('.rtrim(rtrim(number_format($value, 6, '.', ''), '0'), '.').'%)';
+        return rtrim(rtrim(number_format($value, $decimalPlaces, '.', ''), '0'), '.');
+    }
+
+    private static function formatSummaryMoney(mixed $value): string
+    {
+        $code = Filament::getTenant()?->currency?->code ?? 'PKR';
+
+        return Number::currency((float) ($value ?? 0), $code);
     }
 
     /**
-     * Withholding tax computed on the live received supplier subtotal.
+     * Live preview of the withholding tax from the current form state, computed
+     * on the received supplier subtotal.
      */
-    private static function previewReceivedWithholdingTax(callable $get, ?PurchaseOrder $record): float
+    private static function previewWithholdingTax(callable $get): float
     {
-        if (! self::hasWithholdingTax($record)) {
+        $value = (float) ($get('withholding_tax_value') ?? 0);
+
+        if ($value <= 0) {
             return 0.0;
         }
 
-        $value = (float) $record->withholding_tax_value;
-
-        if ($record->withholding_tax_is_percentage) {
-            $base = (float) ($get('total_received_supplier_price') ?? 0);
-
-            return $base * ($value / 100);
+        if ($get('withholding_tax_is_percentage')) {
+            return (float) ($get('total_received_supplier_price') ?? 0) * ($value / 100);
         }
 
         return $value;
+    }
+
+    /**
+     * Live preview of the overall invoice discount, applied on (received
+     * subtotal + withholding tax) and capped at that base.
+     */
+    private static function previewDiscount(callable $get): float
+    {
+        $value = (float) ($get('discount_value') ?? 0);
+
+        if ($value <= 0) {
+            return 0.0;
+        }
+
+        $base = (float) ($get('total_received_supplier_price') ?? 0) + self::previewWithholdingTax($get);
+
+        $discount = $get('discount_is_percentage') ? $base * ($value / 100) : $value;
+
+        return min(max($discount, 0.0), max($base, 0.0));
     }
 
     /**

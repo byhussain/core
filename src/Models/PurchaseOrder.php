@@ -39,6 +39,9 @@ class PurchaseOrder extends Model
         'withholding_tax_is_percentage',
         'withholding_tax_value',
         'withholding_tax_amount',
+        'discount_is_percentage',
+        'discount_value',
+        'discount_amount',
     ];
 
     protected function casts(): array
@@ -58,6 +61,9 @@ class PurchaseOrder extends Model
             'withholding_tax_is_percentage' => 'boolean',
             'withholding_tax_value' => 'decimal:6',
             'withholding_tax_amount' => PriceCast::class,
+            'discount_is_percentage' => 'boolean',
+            'discount_value' => 'decimal:6',
+            'discount_amount' => PriceCast::class,
         ];
     }
 
@@ -77,6 +83,41 @@ class PurchaseOrder extends Model
         return $this->withholding_tax_is_percentage
             ? $supplierBase * ($value / 100)
             : $value;
+    }
+
+    /**
+     * Compute the overall invoice discount for a given base (the supplier
+     * subtotal plus withholding tax). When the value is a percentage it is
+     * applied to the base; otherwise the flat value is returned. The discount
+     * is never larger than the base. Returns 0 when no discount is set.
+     */
+    public function computeDiscount(float $baseAfterWithholding): float
+    {
+        $value = (float) ($this->discount_value ?? 0);
+
+        if ($value <= 0) {
+            return 0.0;
+        }
+
+        $discount = $this->discount_is_percentage
+            ? $baseAfterWithholding * ($value / 100)
+            : $value;
+
+        return min(max($discount, 0.0), max($baseAfterWithholding, 0.0));
+    }
+
+    /**
+     * The order's grand total: supplier subtotal + withholding tax − discount.
+     */
+    public function grandTotalFor(float $supplierBase): float
+    {
+        if ($supplierBase <= 0) {
+            return 0.0;
+        }
+
+        $afterWithholding = $supplierBase + $this->computeWithholdingTax($supplierBase);
+
+        return $afterWithholding - $this->computeDiscount($afterWithholding);
     }
 
     public function store(): BelongsTo
@@ -151,6 +192,10 @@ class PurchaseOrder extends Model
             : $totalRequestedSupplierPrice;
         $withholdingTaxAmount = $this->computeWithholdingTax($withholdingBase);
 
+        // The overall invoice discount is applied AFTER withholding tax, i.e. on
+        // (supplier subtotal + withholding tax).
+        $discountAmount = $this->computeDiscount($withholdingBase + $withholdingTaxAmount);
+
         $this->forceFill([
             'total_requested_quantity' => round($totalRequestedQuantity, 2),
             'total_received_quantity' => round($totalReceivedQuantity, 2),
@@ -161,6 +206,7 @@ class PurchaseOrder extends Model
             'total_requested_supplier_price' => round($totalRequestedSupplierPrice, $decimalPlaces),
             'total_received_supplier_price' => round($totalReceivedSupplierPrice, $decimalPlaces),
             'withholding_tax_amount' => round($withholdingTaxAmount, $decimalPlaces),
+            'discount_amount' => round($discountAmount, $decimalPlaces),
         ])->saveQuietly();
 
         CloudSyncFlagger::flag($this);

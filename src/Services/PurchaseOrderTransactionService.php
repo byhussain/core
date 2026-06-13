@@ -36,20 +36,27 @@ class PurchaseOrderTransactionService
                 $lastBalance = $supplier->transactions()->latest('id')->value('amount_balance') ?? 0;
 
                 // The supplier is owed the received supplier cost PLUS any
-                // withholding tax the buyer pays on the purchase. recalculateTotals()
-                // (run above) already computed withholding_tax_amount on the
-                // received subtotal.
+                // withholding tax, LESS any overall invoice discount.
+                // recalculateTotals() (run above) already computed both amounts.
                 $withholdingTax = (float) $purchaseOrder->withholding_tax_amount;
-                $payable = (float) $purchaseOrder->total_received_supplier_price + $withholdingTax;
+                $discount = (float) $purchaseOrder->discount_amount;
+                $payable = (float) $purchaseOrder->total_received_supplier_price + $withholdingTax - $discount;
                 $amount = -abs($payable); // supplier_credit is a minus entry
                 $newBalance = $lastBalance + $amount; // supplier_credit decreases balance
 
-                // Make the withholding tax visible on the ledger entry instead of
-                // silently bundling it into the amount.
-                $note = 'Purchase order closed: supplier credit';
+                // Spell out the withholding tax and discount on the ledger entry
+                // instead of silently bundling them into the amount.
+                $decimalPlaces = $purchaseOrder->store?->currency?->decimal_places ?? 2;
+                $noteParts = [];
                 if ($withholdingTax > 0) {
-                    $decimalPlaces = $purchaseOrder->store?->currency?->decimal_places ?? 2;
-                    $note .= ' (incl. withholding tax '.number_format($withholdingTax, $decimalPlaces).')';
+                    $noteParts[] = 'incl. withholding tax '.number_format($withholdingTax, $decimalPlaces);
+                }
+                if ($discount > 0) {
+                    $noteParts[] = 'less discount '.number_format($discount, $decimalPlaces);
+                }
+                $note = 'Purchase order closed: supplier credit';
+                if ($noteParts !== []) {
+                    $note .= ' ('.implode(', ', $noteParts).')';
                 }
 
                 $supplier->transactions()

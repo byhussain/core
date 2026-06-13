@@ -798,14 +798,76 @@ class PurchaseOrderForm
                             })
                             ->columnSpanFull(),
 
+                        // Overall invoice discount, applied AFTER withholding tax —
+                        // i.e. on (supplier subtotal + withholding tax). Same single
+                        // input pattern as withholding tax (flat amount or percentage).
+                        TextInput::make('discount_input')
+                            ->label('Discount')
+                            ->placeholder('e.g. 100 or 2.5%')
+                            ->helperText('Applied after withholding tax. Flat (e.g. 100) or percentage (e.g. 2.5%). Leave empty for none.')
+                            ->dehydrated(false)
+                            ->live(onBlur: true)
+                            ->afterStateHydrated(function ($state, callable $set, callable $get): void {
+                                if (filled($state)) {
+                                    return;
+                                }
+
+                                $value = $get('discount_value');
+                                if (! is_numeric($value) || (float) $value <= 0) {
+                                    $set('discount_input', null);
+
+                                    return;
+                                }
+
+                                $set('discount_input', self::formatWithholdingInput(
+                                    (bool) $get('discount_is_percentage'),
+                                    (float) $value,
+                                ));
+                            })
+                            ->afterStateUpdated(function ($state, callable $set): void {
+                                $raw = is_string($state) ? trim($state) : (string) ($state ?? '');
+
+                                if ($raw === '') {
+                                    $set('discount_is_percentage', false);
+                                    $set('discount_value', null);
+                                    $set('discount_input', null);
+
+                                    return;
+                                }
+
+                                $isPercent = str_ends_with($raw, '%');
+                                $number = max(0.0, (float) str_replace('%', '', $raw));
+
+                                $set('discount_is_percentage', $isPercent);
+                                $set('discount_value', $number);
+                                $set('discount_input', self::formatWithholdingInput($isPercent, $number));
+                            })
+                            ->columnSpanFull(),
+
+                        Hidden::make('discount_is_percentage')->default(false),
+                        Hidden::make('discount_value'),
+
+                        Placeholder::make('discount_amount_display')
+                            ->label('Discount Amount')
+                            ->content(function (callable $get): string {
+                                $currency = Filament::getTenant()?->currency;
+
+                                return Number::currency(
+                                    self::previewDiscount($get),
+                                    $currency?->code ?? 'PKR',
+                                );
+                            })
+                            ->columnSpanFull(),
+
                         Placeholder::make('grand_total_display')
                             ->label('Grand Total')
                             ->content(function (callable $get): string {
                                 $currency = Filament::getTenant()?->currency;
                                 $supplierTotal = (float) ($get('total_requested_supplier_price') ?? 0);
+                                $afterWht = $supplierTotal + self::previewWithholdingTax($get);
 
                                 return Number::currency(
-                                    $supplierTotal + self::previewWithholdingTax($get),
+                                    $afterWht - self::previewDiscount($get),
                                     $currency?->code ?? 'PKR',
                                 );
                             })
@@ -865,6 +927,29 @@ class PurchaseOrderForm
         }
 
         return $value;
+    }
+
+    /**
+     * Live preview of the overall invoice discount from the current form state.
+     * The discount is applied on (supplier subtotal + withholding tax) and is
+     * capped at that base. The authoritative value is recomputed and persisted
+     * by PurchaseOrder::recalculateTotals() on save.
+     */
+    private static function previewDiscount(callable $get): float
+    {
+        $value = (float) ($get('discount_value') ?? 0);
+
+        if ($value <= 0) {
+            return 0.0;
+        }
+
+        $base = (float) ($get('total_requested_supplier_price') ?? 0) + self::previewWithholdingTax($get);
+
+        $discount = $get('discount_is_percentage')
+            ? $base * ($value / 100)
+            : $value;
+
+        return min(max($discount, 0.0), max($base, 0.0));
     }
 
     private static function recalcSummaryFromItems(

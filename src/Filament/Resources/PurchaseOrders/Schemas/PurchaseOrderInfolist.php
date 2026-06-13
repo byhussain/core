@@ -101,14 +101,24 @@ class PurchaseOrderInfolist
                                             ->visible(fn (PurchaseOrder $record): bool => self::hasWithholdingTax($record))
                                             ->columnSpanFull(),
 
+                                        TextEntry::make('discount_requested')
+                                            ->label(fn (PurchaseOrder $record): string => 'Discount'.self::discountLabelSuffix($record))
+                                            ->state(fn (PurchaseOrder $record): float => -$record->computeDiscount(self::requestedAfterWithholding($record)))
+                                            ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
+                                            ->icon(Heroicon::OutlinedReceiptPercent)
+                                            ->color('danger')
+                                            ->weight('medium')
+                                            ->visible(fn (PurchaseOrder $record): bool => self::hasDiscount($record))
+                                            ->columnSpanFull(),
+
                                         TextEntry::make('grand_total_requested')
                                             ->label('Grand Total')
-                                            ->state(fn (PurchaseOrder $record): float => $record->calculateRequestedSupplierTotal() + $record->computeWithholdingTax($record->calculateRequestedSupplierTotal()))
+                                            ->state(fn (PurchaseOrder $record): float => $record->grandTotalFor($record->calculateRequestedSupplierTotal()))
                                             ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
                                             ->weight('bold')
                                             ->color('primary')
                                             ->icon(Heroicon::OutlinedBanknotes)
-                                            ->visible(fn (PurchaseOrder $record): bool => self::hasWithholdingTax($record))
+                                            ->visible(fn (PurchaseOrder $record): bool => self::hasWithholdingTax($record) || self::hasDiscount($record))
                                             ->columnSpanFull(),
                                     ])
                                     ->collapsible(false)
@@ -205,14 +215,24 @@ class PurchaseOrderInfolist
                                             ->visible(fn (PurchaseOrder $record): bool => self::hasWithholdingTax($record) && self::isClosed($record))
                                             ->columnSpanFull(),
 
+                                        TextEntry::make('discount_received')
+                                            ->label(fn (PurchaseOrder $record): string => 'Discount'.self::discountLabelSuffix($record))
+                                            ->state(fn (PurchaseOrder $record): float => -$record->computeDiscount(self::receivedAfterWithholding($record)))
+                                            ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
+                                            ->icon(Heroicon::OutlinedReceiptPercent)
+                                            ->color('danger')
+                                            ->weight('medium')
+                                            ->visible(fn (PurchaseOrder $record): bool => self::hasDiscount($record) && self::isClosed($record))
+                                            ->columnSpanFull(),
+
                                         TextEntry::make('grand_total_received')
                                             ->label('Grand Total')
-                                            ->state(fn (PurchaseOrder $record): float => $record->calculateReceivedSupplierTotal() + $record->computeWithholdingTax($record->calculateReceivedSupplierTotal()))
+                                            ->state(fn (PurchaseOrder $record): float => $record->grandTotalFor($record->calculateReceivedSupplierTotal()))
                                             ->money(fn () => Filament::getTenant()?->currency->code ?? 'PKR')
                                             ->weight('bold')
                                             ->color('primary')
                                             ->icon(Heroicon::OutlinedBanknotes)
-                                            ->visible(fn (PurchaseOrder $record): bool => self::hasWithholdingTax($record) && self::isClosed($record))
+                                            ->visible(fn (PurchaseOrder $record): bool => (self::hasWithholdingTax($record) || self::hasDiscount($record)) && self::isClosed($record))
                                             ->columnSpanFull(),
                                     ])
                                     ->collapsible(false)
@@ -289,5 +309,35 @@ class PurchaseOrderInfolist
         $value = (float) $record->withholding_tax_value;
 
         return ' ('.rtrim(rtrim(number_format($value, 6, '.', ''), '0'), '.').'%)';
+    }
+
+    private static function hasDiscount(PurchaseOrder $record): bool
+    {
+        return (float) ($record->discount_value ?? 0) > 0;
+    }
+
+    private static function discountLabelSuffix(PurchaseOrder $record): string
+    {
+        if (! self::hasDiscount($record) || ! $record->discount_is_percentage) {
+            return '';
+        }
+
+        $value = (float) $record->discount_value;
+
+        return ' ('.rtrim(rtrim(number_format($value, 6, '.', ''), '0'), '.').'%)';
+    }
+
+    private static function requestedAfterWithholding(PurchaseOrder $record): float
+    {
+        $base = $record->calculateRequestedSupplierTotal();
+
+        return $base + $record->computeWithholdingTax($base);
+    }
+
+    private static function receivedAfterWithholding(PurchaseOrder $record): float
+    {
+        $base = $record->calculateReceivedSupplierTotal();
+
+        return $base + $record->computeWithholdingTax($base);
     }
 }

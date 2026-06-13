@@ -3,6 +3,7 @@
 namespace SmartTill\Core\Filament\Resources\PurchaseOrders\Pages;
 
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -11,6 +12,7 @@ use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use SmartTill\Core\Enums\PurchaseOrderStatus;
+use SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper;
 use SmartTill\Core\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
 use SmartTill\Core\Filament\Resources\PurchaseOrders\Schemas\ReceiveForm;
 use SmartTill\Core\Models\Stock;
@@ -40,6 +42,19 @@ class ClosePurchaseOrder extends Page implements HasSchemas
 
     public float $total_received_supplier_price = 0;
 
+    // Withholding tax & discount — editable at receive time.
+    public ?string $withholding_tax_input = null;
+
+    public bool $withholding_tax_is_percentage = false;
+
+    public ?float $withholding_tax_value = null;
+
+    public ?string $discount_input = null;
+
+    public bool $discount_is_percentage = false;
+
+    public ?float $discount_value = null;
+
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
@@ -53,7 +68,7 @@ class ClosePurchaseOrder extends Page implements HasSchemas
         // PriceCast already divides by 100 when accessing pivot values, so values are already in display format
         // Refresh the relationship to ensure PurchaseOrderProduct model is used
         $this->record->load('variations');
-        $store = \Filament\Facades\Filament::getTenant();
+        $store = Filament::getTenant();
         $currency = $store?->currency;
         $decimalPlaces = $currency->decimal_places ?? 2;
         $this->purchaseOrderProducts = $this->record->variations()
@@ -129,7 +144,7 @@ class ClosePurchaseOrder extends Page implements HasSchemas
             ->toArray();
 
         // Pre-calculate summary totals for initial render.
-        $store = \Filament\Facades\Filament::getTenant();
+        $store = Filament::getTenant();
         $currency = $store?->currency;
         $decimalPlaces = $currency->decimal_places ?? 2;
         $itemsCount = collect($this->purchaseOrderProducts)
@@ -176,6 +191,60 @@ class ClosePurchaseOrder extends Page implements HasSchemas
             $this->total_received_tax_amount = 0;
         }
         $this->total_received_supplier_price = round($sumSupplier, $decimalPlaces);
+
+        // Pre-fill the withholding tax & discount set when the order was created,
+        // so the user can review and adjust them at receive time.
+        $this->withholding_tax_is_percentage = (bool) $this->record->withholding_tax_is_percentage;
+        $this->withholding_tax_value = is_numeric($this->record->withholding_tax_value)
+            ? (float) $this->record->withholding_tax_value
+            : null;
+        $this->withholding_tax_input = self::formatAdjustmentInput(
+            $this->withholding_tax_is_percentage,
+            $this->withholding_tax_value,
+            $decimalPlaces,
+        );
+
+        $this->discount_is_percentage = (bool) $this->record->discount_is_percentage;
+        $this->discount_value = is_numeric($this->record->discount_value)
+            ? (float) $this->record->discount_value
+            : null;
+        $this->discount_input = self::formatAdjustmentInput(
+            $this->discount_is_percentage,
+            $this->discount_value,
+            $decimalPlaces,
+        );
+    }
+
+    private static function formatAdjustmentInput(bool $isPercent, ?float $value, int $decimalPlaces): ?string
+    {
+        if (! is_numeric($value) || (float) $value <= 0) {
+            return null;
+        }
+
+        if ($isPercent) {
+            return rtrim(rtrim(number_format((float) $value, 6, '.', ''), '0'), '.').'%';
+        }
+
+        return rtrim(rtrim(number_format((float) $value, $decimalPlaces, '.', ''), '0'), '.');
+    }
+
+    /**
+     * Parse a "5%" / "50" adjustment input into [isPercentage, value].
+     *
+     * @return array{0: bool, 1: float|null}
+     */
+    private function parseAdjustment(?string $input): array
+    {
+        $raw = is_string($input) ? trim($input) : '';
+
+        if ($raw === '') {
+            return [false, null];
+        }
+
+        $isPercent = str_ends_with($raw, '%');
+        $number = max(0.0, (float) str_replace('%', '', $raw));
+
+        return [$isPercent, $number > 0 ? $number : null];
     }
 
     protected function getHeaderActions(): array
@@ -190,8 +259,8 @@ class ClosePurchaseOrder extends Page implements HasSchemas
                 ->label('Mark as Closed')
                 ->color('success')
                 ->icon(Heroicon::OutlinedCheck)
-                ->visible(fn () => \SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper::check('Close Purchase Orders'))
-                ->authorize(fn () => \SmartTill\Core\Filament\Resources\Helpers\ResourceCanAccessHelper::check('Close Purchase Orders'))
+                ->visible(fn () => ResourceCanAccessHelper::check('Close Purchase Orders'))
+                ->authorize(fn () => ResourceCanAccessHelper::check('Close Purchase Orders'))
                 ->action('save')
                 ->requiresConfirmation()
                 ->modalHeading('Close Purchase Order')
@@ -237,6 +306,17 @@ class ClosePurchaseOrder extends Page implements HasSchemas
                 }
             }
         }
+
+        // Persist any withholding tax / discount adjustments made at receive time
+        // (parsed from the visible inputs so it works regardless of field hooks),
+        // then mark closed and recompute totals (which derives the amounts).
+        [$whtIsPercent, $whtValue] = $this->parseAdjustment($this->withholding_tax_input);
+        $this->record->withholding_tax_is_percentage = $whtIsPercent;
+        $this->record->withholding_tax_value = $whtValue;
+
+        [$discountIsPercent, $discountValue] = $this->parseAdjustment($this->discount_input);
+        $this->record->discount_is_percentage = $discountIsPercent;
+        $this->record->discount_value = $discountValue;
 
         // Mark purchase order as closed and update totals
         $this->record->status = PurchaseOrderStatus::Closed;

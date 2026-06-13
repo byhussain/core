@@ -140,10 +140,12 @@ class TransactionsTable
             && in_array($record->type, ['supplier_credit', 'supplier_debit'], true)
         ) {
             // The supplier is owed the received supplier cost PLUS any withholding
-            // tax on the purchase, so the ledger must reflect the grand total
-            // (matching the amount stored on the transaction at close time).
+            // tax, LESS any overall invoice discount, so the ledger must reflect
+            // the grand total (matching the amount stored on the transaction at
+            // close time).
             $purchaseOrderAmount = (float) $record->referenceable->calculateReceivedSupplierTotal()
-                + (float) $record->referenceable->withholding_tax_amount;
+                + (float) $record->referenceable->withholding_tax_amount
+                - (float) $record->referenceable->discount_amount;
 
             return $record->type === 'supplier_credit'
                 ? -abs($purchaseOrderAmount)

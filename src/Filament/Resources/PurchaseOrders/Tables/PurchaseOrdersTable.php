@@ -146,16 +146,12 @@ class PurchaseOrdersTable
     }
 
     /**
-     * Grand total for a supplier-cost base: the base plus its withholding tax.
-     * Returns 0 when the base is 0 so a flat withholding value is not shown
-     * against an empty (e.g. not-yet-received) subtotal.
+     * Grand total for a supplier-cost base: base + withholding tax − discount.
+     * Returns 0 when the base is 0 so flat withholding/discount values are not
+     * shown against an empty (e.g. not-yet-received) subtotal.
      */
     private static function grandTotalFor(float $base, PurchaseOrder $record): float
     {
-        if ($base <= 0) {
-            return 0.0;
-        }
-
-        return $base + $record->computeWithholdingTax($base);
+        return $record->grandTotalFor($base);
     }
 }
